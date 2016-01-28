@@ -26,6 +26,9 @@ int const ROI_X = 134;
 int const ROI_Y = 0;
 int const ROI_WIDTH = 371;
 int const ROI_HEIGHT = IMAGE_HEIGHT;
+int const RANGE = 100;
+int const DEFAULT_SIZE = 3100;
+
 
 bool displayMsg = true;
 
@@ -71,8 +74,15 @@ void CTCSys::QSStopThread()
 long QSProcessThreadFunc(CTCSys *QS)
 {
 	int		i;
-	bool	pass = false;
+	InspectionState	pass = not_in_frame;
 	Mat CurrentImage;
+	Mat maskLeft;
+	Mat maskRight;
+	double cntArea;
+
+	// For find contours
+	vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
 
 	while (QS->EventEndProcess == FALSE) {
 
@@ -98,99 +108,53 @@ long QSProcessThreadFunc(CTCSys *QS)
 		// Process Image ProcBuf
 		if (QS->IR.Inspection) {
 			// Images are acquired into ProcBuf{0]
-			// QS->IR.ProcBuf[0].copyTo(frameDisplay);
-		    // Mat mask = Mat::zeros(IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC1);
-		    // mask(Rect(ROI_X,ROI_Y,ROI_WIDTH,ROI_HEIGHT)) = 1;
 
-			//    GaussianBlur(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], Size(BLURFACTOR,BLURFACTOR), 1.5, 1.5);
-			// Canny(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 70, 100);
-			cvtColor(QS->IR.ProcBuf[0], QS->IR.OutBuf1[0], CV_RGB2GRAY);
-			CurrentImage = QS->IR.OutBuf1[0](Rect(ROI_X,ROI_Y,ROI_WIDTH,ROI_HEIGHT));
-			CurrentImage.setTo(255);
+			cvtColor(QS->IR.ProcBuf[0], QS->IR.OutBuf1[0], CV_BGR2GRAY);
+			cvtColor(QS->IR.ProcBuf[0], CurrentImage, CV_BGR2GRAY);
+			maskLeft = CurrentImage(Rect(0, 0, 134, 480));
+			maskRight = CurrentImage(Rect(506, 0, 134, 480));
+			maskLeft.setTo(0);
+			maskRight.setTo(0);
 
-			// QS->IR.ProcBuf[0] = CurrentImage;
-		    QS->IR.OutBuf1[0] = CurrentImage;
+			//cvtColor(QS->IR.ProcBuf[0], QS->IR.OutBuf1[0], CV_BGR2GRAY);
+			GaussianBlur(CurrentImage, CurrentImage, Size(BLURFACTOR, BLURFACTOR), 1.5, 1.5);
+   //         // Canny(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 10, 250, 3);
+			Canny(CurrentImage, CurrentImage, 10, 250, 3);
+			//// findContours(QS->IR.OutBuf1[0], contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
+			findContours(CurrentImage, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-			pass = true;
+			if (contours.size() != 0) {
+				vector<Moments> mu(contours.size());
+				for (int i = 0; i < contours.size(); i++) {
+					mu[i] = moments(contours[i], false);
+				}
 
-			if(displayMsg){
-				displayMsg = false;
-				AfxMessageBox(L"Yo!!", MB_ICONSTOP);
+				vector<Point2f> mc(contours.size());
+				for (int i = 0; i < contours.size(); i++) {
+					mc[i] = Point2f(mu[i].m10 / mu[i].m00, mu[i].m01 / mu[i].m00);
+				}
+				if (mc[0].y > 80 && mc[0].y < 400) {
+					// // Test functions for contour area and center
+					cntArea = contourArea(contours[0], false);
+					//double rad = sqrt(cntArea / 3.1415);
+					//circle(QS->IR.OutBuf1[0], mc[0], int(rad), Scalar(255, 255, 255), -1);
+					if (cntArea > DEFAULT_SIZE - RANGE && cntArea < DEFAULT_SIZE + RANGE){ 
+						pass = good; 
+						drawContours( QS->IR.OutBuf1[0], contours, -1, Scalar(255,255,255), 3, 8, hierarchy, 0, Point() );
+						//drawContours(QS->IR.DispBuf[0], contours, -1, Scalar(255, 255, 255), 3, 8, hierarchy, 0, Point());
+					}
+					else{ 
+						pass = bad; 
+					}
+				}
+				else{ 
+					pass = not_in_frame;
+				}
+			}
+			else{ 
+				pass = not_in_frame; 
 			}
 
-
-			// TODO: Convert over from Python to C++
-			// edges = cv2.Canny(img, 10, 250)
-			// kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 1))
-			// closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
-			// jprint('finding contours...')
-			// TODO: Get this to work!
-			// _,cnts, _ = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-
-
-
-
-
-			// total = 0
-			// # loop over the contours
-			// img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-			// cnt = cnts[0]
-
-			// hull = cv2.convexHull(cnt,returnPoints = False)
-			// defects = cv2.convexityDefects(cnt,hull)
-
-			// for c in cnts:
-			// 	# approximate the contour
-			// 	k = cv2.isContourConvex(cnt)
-			// 	# jprint(k)
-			// 	if not k:
-			// 		jprint('contour is concave...')
-			// 		peri = cv2.arcLength(c, True)
-			// 		approx = cv2.approxPolyDP(c, 0.001 * peri, True)
-			// 		# jprint(approx)
-
-			// 		# if the approximated contour has four points, then assume that the
-			// 		# contour is a book -- a book is a rectangle and thus has four vertices
-			// 		# if len(approx) == 4:
-			// 		cv2.drawContours(img, [approx], -1, (0, 255, 0), 2)
-
-			// 		# rect = cv2.minAreaRect(cnt)
-			// 		# jprint(rect[1])
-			// 		# box = cv2.boxPoints(rect)
-			// 		# box = np.int0(box)
-			// 		# # jprint(box)
-			// 		# boxArea = rect[1][0]*rect[1][1]
-			// 		# boxCenter = rect[0]
-			// 		# jprint(boxArea)
-			// 		# cv2.drawContours(img,[box],0,(0,0,255),2)
-			// 		# rows,cols = img.shape[:2]
-
-			// 		(x,y),radius = cv2.minEnclosingCircle(c)
-			// 		center = (int(x),int(y))
-			// 		radius = int(radius)
-			// 		cv2.circle(img,center,radius,(0,255,0),2)
-			// 		circleArea = pi*radius**2
-			// 		cntArea = cv2.contourArea(c)
-			// 		print('Contour Perimeter: ', peri, flush = True)
-			// 		print('Contour Area: ', cntArea, flush = True)
-			// 		print('Circle Area: ', circleArea, flush = True)
-			// 		print('Circle Radius: ', radius, flush = True)
-			// 		print('Circle - Contour area Difference: ', abs(circleArea - cntArea), flush = True)
-			// 		print(center,flush=True)
-			// 		# encShpDist = np.sqrt(np.sum((boxCenter - np.rint(center))**2))
-			// 		# jprint(encShpDist)
-			// 		total += 1
-
-
-
-			// // Example processing
-			// for(i=0; i < QS->IR.NumCameras; i++) {
-			// 	// Example using Canny.  Input is ProcBuf.  Output is OutBuf1
-			// 	cvtColor(QS->IR.ProcBuf[i], QS->IR.OutBuf1[i], CV_RGB2GRAY);
-			// 	Canny(QS->IR.OutBuf1[i], QS->IR.OutBuf1[i], 70, 100);
-			// 	// QS->IR.OutBuf1[i] = processHeartImage(QS->IR.ProcBuf[i]);
-			// }
 
 		}
 		// Display Image
@@ -389,7 +353,25 @@ void CTCSys::QSSysConvertToOpenCV(Mat* openCV_image, Image PGR_image)
 }
 #endif
 
-void CTCSys::QSSysPrintResult(bool pass)
+void CTCSys::QSSysPrintResult(InspectionState state)
 {
-	putText(IR.DispBuf[0], (pass) ? "Pass" : "Fail", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(0, 255, 0), 2);
+	string str;
+	switch (state){
+	default:
+		str = "UNKNOWN";
+		break;
+	case not_in_frame:
+		str = "Not In Frame";
+		break;
+	case good:
+		str = "GOOD";
+		break;
+	case bad:
+		str = "BAD";
+		break;
+	case ugly:
+		str = "UGLY";
+		break;
+	}
+	putText(IR.DispBuf[0], str, Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(0, 255, 0), 2);
 }
