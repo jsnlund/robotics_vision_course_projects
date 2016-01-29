@@ -11,10 +11,14 @@ using namespace FlyCapture2;
 using namespace std;
 using namespace cv;
 
+// 
+enum InspectionState { not_in_frame, good, bad, ugly };
+
+
 #define PTG_COLOR
 #define DEVELOPMENT
 
-#define APP_DIRECTORY		"C:\\Projects\\VisualInspection\\"
+#define APP_DIRECTORY		"C:\\Projects\\VisualInspection - 10\\"
 #define	SHUTTER_SPEED		12.0					// Shutter speed in mSec
 #define WHITE_BALANCE_R		560;
 #define WHITE_BALANCE_B		740;
@@ -126,7 +130,7 @@ protected:
 #ifdef PTGREY
 	void	QSSysConvertToOpenCV(Mat* openCV_image, Image PGR_image);
 #endif
-	void	QSSysPrintResult(bool pass);
+	void	QSSysPrintResult(InspectionState state);
 public:
 	static  ImagingResources IR;
 	RECT	ImageRect[MAX_CAMERA];
