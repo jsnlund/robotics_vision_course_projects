@@ -26,8 +26,8 @@ int const ROI_X = 134;
 int const ROI_Y = 0;
 int const ROI_WIDTH = 371;
 int const ROI_HEIGHT = IMAGE_HEIGHT;
-int const RANGE = 100;
-int const DEFAULT_SIZE = 3100;
+int const SIZE_LOWER = 3120;
+int const SIZE_UPPER = 3400;
 
 
 bool displayMsg = true;
@@ -78,7 +78,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 	Mat CurrentImage;
 	Mat maskLeft;
 	Mat maskRight;
-	double cntArea;
+	float cntArea;
 
 	// For find contours
 	vector<vector<Point> > contours;
@@ -117,11 +117,16 @@ long QSProcessThreadFunc(CTCSys *QS)
 			maskRight.setTo(0);
 
 			//cvtColor(QS->IR.ProcBuf[0], QS->IR.OutBuf1[0], CV_BGR2GRAY);
+			
 			GaussianBlur(CurrentImage, CurrentImage, Size(BLURFACTOR, BLURFACTOR), 1.5, 1.5);
+
+			threshold(CurrentImage, CurrentImage, 100, 255, THRESH_BINARY);
    //         // Canny(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 10, 250, 3);
 			Canny(CurrentImage, CurrentImage, 10, 250, 3);
 			//// findContours(QS->IR.OutBuf1[0], contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
 			findContours(CurrentImage, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+
+			threshold(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 40, 255, THRESH_BINARY);
 
 			if (contours.size() != 0) {
 				vector<Moments> mu(contours.size());
@@ -136,11 +141,16 @@ long QSProcessThreadFunc(CTCSys *QS)
 				if (mc[0].y > 80 && mc[0].y < 400) {
 					// // Test functions for contour area and center
 					cntArea = contourArea(contours[0], false);
+
+					//char Msg[128];
+					//sprintf_s(Msg, "Contour Area =  %f", cntArea);
+					//AfxMessageBox(CA2W(Msg), MB_ICONSTOP);
+
 					//double rad = sqrt(cntArea / 3.1415);
 					//circle(QS->IR.OutBuf1[0], mc[0], int(rad), Scalar(255, 255, 255), -1);
-					if (cntArea > DEFAULT_SIZE - RANGE && cntArea < DEFAULT_SIZE + RANGE){ 
+					if (cntArea > SIZE_LOWER && cntArea < SIZE_UPPER){ 
 						pass = good; 
-						drawContours( QS->IR.OutBuf1[0], contours, -1, Scalar(255,255,255), 3, 8, hierarchy, 0, Point() );
+						//drawContours( QS->IR.OutBuf1[0], contours, -1, Scalar(255,255,255), 3, 8, hierarchy, 0, Point() );
 						//drawContours(QS->IR.DispBuf[0], contours, -1, Scalar(255, 255, 255), 3, 8, hierarchy, 0, Point());
 					}
 					else{ 
