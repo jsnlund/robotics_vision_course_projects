@@ -116,54 +116,75 @@ long QSProcessThreadFunc(CTCSys *QS)
 			maskLeft.setTo(0);
 			maskRight.setTo(0);
 
-			//cvtColor(QS->IR.ProcBuf[0], QS->IR.OutBuf1[0], CV_BGR2GRAY);
-			
-			GaussianBlur(CurrentImage, CurrentImage, Size(BLURFACTOR, BLURFACTOR), 1.5, 1.5);
+			// GaussianBlur(CurrentImage, CurrentImage, Size(BLURFACTOR, BLURFACTOR), 1.5, 1.5);
+			// Filter size should be 5. Sigma values should be equal, both between 10 < x < 150
+			// 20 seems to blur out the words, but keep some of the chips and irregularities
+			bilateralFilter(CurrentImage, QS->IR.OutBuf1[0], 5, 20,20);
 
-			threshold(CurrentImage, CurrentImage, 100, 255, THRESH_BINARY);
+			// threshold(CurrentImage, CurrentImage, 100, 255, THRESH_BINARY);
    //         // Canny(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 10, 250, 3);
-			Canny(CurrentImage, CurrentImage, 10, 250, 3);
-			//// findContours(QS->IR.OutBuf1[0], contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
-			findContours(CurrentImage, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+			Canny(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 10, 250, 3);
+			// findContours(CurrentImage, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-			threshold(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 40, 255, THRESH_BINARY);
 
-			if (contours.size() != 0) {
-				vector<Moments> mu(contours.size());
-				for (int i = 0; i < contours.size(); i++) {
-					mu[i] = moments(contours[i], false);
-				}
 
-				vector<Point2f> mc(contours.size());
-				for (int i = 0; i < contours.size(); i++) {
-					mc[i] = Point2f(mu[i].m10 / mu[i].m00, mu[i].m01 / mu[i].m00);
-				}
-				if (mc[0].y > 80 && mc[0].y < 400) {
-					// // Test functions for contour area and center
-					cntArea = contourArea(contours[0], false);
 
-					//char Msg[128];
-					//sprintf_s(Msg, "Contour Area =  %f", cntArea);
-					//AfxMessageBox(CA2W(Msg), MB_ICONSTOP);
+			// threshold(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 40, 255, THRESH_BINARY);
 
-					//double rad = sqrt(cntArea / 3.1415);
-					//circle(QS->IR.OutBuf1[0], mc[0], int(rad), Scalar(255, 255, 255), -1);
-					if (cntArea > SIZE_LOWER && cntArea < SIZE_UPPER){ 
-						pass = good; 
-						//drawContours( QS->IR.OutBuf1[0], contours, -1, Scalar(255,255,255), 3, 8, hierarchy, 0, Point() );
-						//drawContours(QS->IR.DispBuf[0], contours, -1, Scalar(255, 255, 255), 3, 8, hierarchy, 0, Point());
-					}
-					else{ 
-						pass = bad; 
-					}
-				}
-				else{ 
-					pass = not_in_frame;
-				}
-			}
-			else{ 
-				pass = not_in_frame; 
-			}
+
+
+
+
+
+
+
+
+			// if (contours.size() != 0) {
+			// 	vector<Moments> mu(contours.size());
+			// 	for (int i = 0; i < contours.size(); i++) {
+			// 		mu[i] = moments(contours[i], false);
+			// 	}
+
+			// 	vector<Point2f> mc(contours.size());
+			// 	for (int i = 0; i < contours.size(); i++) {
+			// 		mc[i] = Point2f(mu[i].m10 / mu[i].m00, mu[i].m01 / mu[i].m00);
+			// 	}
+			// 	if (mc[0].y > 80 && mc[0].y < 400) {
+			// 		// // Test functions for contour area and center
+			// 		cntArea = contourArea(contours[0], false);
+
+			// 		//char Msg[128];
+			// 		//sprintf_s(Msg, "Contour Area =  %f", cntArea);
+			// 		//AfxMessageBox(CA2W(Msg), MB_ICONSTOP);
+
+			// 		//double rad = sqrt(cntArea / 3.1415);
+			// 		//circle(QS->IR.OutBuf1[0], mc[0], int(rad), Scalar(255, 255, 255), -1);
+			// 		if (cntArea > SIZE_LOWER && cntArea < SIZE_UPPER){
+			// 			pass = good;
+			// 			//drawContours( QS->IR.OutBuf1[0], contours, -1, Scalar(255,255,255), 3, 8, hierarchy, 0, Point() );
+			// 			//drawContours(QS->IR.DispBuf[0], contours, -1, Scalar(255, 255, 255), 3, 8, hierarchy, 0, Point());
+			// 		}
+			// 		else{
+			// 			pass = bad;
+			// 		}
+			// 	}
+			// 	else{
+			// 		pass = not_in_frame;
+			// 	}
+			// }
+			// else{
+			// 	pass = not_in_frame;
+			// }
+
+
+
+
+
+
+
+
+
+
 
 
 		}
