@@ -117,9 +117,14 @@ long QSProcessThreadFunc(CTCSys *QS)
 			maskRight.setTo(0);
 
 			// GaussianBlur(CurrentImage, CurrentImage, Size(BLURFACTOR, BLURFACTOR), 1.5, 1.5);
+
+			// TODO: Detect ugly hearts by finding chips
 			// Filter size should be 5. Sigma values should be equal, both between 10 < x < 150
 			// 20 seems to blur out the words, but keep some of the chips and irregularities
-			bilateralFilter(CurrentImage, QS->IR.OutBuf1[0], 5, 20,20);
+			bilateralFilter(CurrentImage, QS->IR.OutBuf1[0], 5, 30,30);
+			// TODO: Depending on the lighting, the text and/or the chips will either show up or not
+
+			// TODO: Look into HSV for filtering, etc. How can this help?
 
 			// threshold(CurrentImage, CurrentImage, 100, 255, THRESH_BINARY);
    //         // Canny(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 10, 250, 3);
