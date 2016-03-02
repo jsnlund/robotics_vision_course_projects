@@ -93,8 +93,8 @@ int main(int argc, char const *argv[]) {
     // Mat erosionKernel = getStructuringElement(int shape, Size ksize, Point anchor=Point(-1,-1))
 
     // For find contours
-    vector<vector<Point>> contours_left;
-    vector<Vec4i> hierarchy_left;
+    vector<vector<Point>> contours_left, contours_right;
+    vector<Vec4i> hierarchy_left, hierarchy_right;
 
 
     // Load the first image
@@ -220,22 +220,29 @@ int main(int argc, char const *argv[]) {
             threshold(frame_right_first_diff_thresh, frame_right_first_diff_thresh, 5, 256, THRESH_BINARY);
 
             contours_left.clear();
+            contours_right.clear();
             hierarchy_left.clear();
+            hierarchy_right.clear();
             Canny(frame_left_first_diff_thresh, frame_left_canny, 10, 200, 3);
             // Find contours modifies the input image!! So pass in a copy
             // findContours(frame_left_first_diff_thresh.clone()(left_roi), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(left_roi.x, left_roi.y));
             // CV_RETR_TREE CV_RETR_EXTERNAL
             // CV_CHAIN_APPROX_NONE CV_CHAIN_APPROX_SIMPLE
             findContours(frame_left_first_diff_thresh.clone(), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
-            cout << "Left Contours: " << contours_left.size() << endl;
+            findContours(frame_right_first_diff_thresh.clone(), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
+            // cout << "Left Contours: " << contours_left.size() << endl;
 
             imshow("Left Canny", frame_left_canny);
 
             cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
             cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
             if(contours_left.size()){
-                cout << "drawContours!" << endl;
+                // cout << "drawContours!" << endl;
                 drawContours(frame_left_first_diff_thresh, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
+            }
+            if(contours_right.size()){
+                // cout << "drawContours!" << endl;
+                drawContours(frame_right_first_diff_thresh, contours_right, -1, Scalar(255,0,0), 3, 8, hierarchy_right, 2, Point() );
             }
 
             imshow("Left Thresh First-Curr", frame_left_first_diff_thresh);
@@ -260,7 +267,7 @@ int main(int argc, char const *argv[]) {
 
 
         // Need this for images to display, or else output windows just show up gray
-        keypress = waitKey(300);
+        keypress = waitKey(30);
 
         // Update prev frames with current frames
         frame_left.copyTo(frame_left_prev);
