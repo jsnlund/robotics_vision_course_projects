@@ -54,13 +54,30 @@ int main(int argc, char const *argv[]) {
     int const ROI_RIGHT_WIDTH_DEFAULT = ROI_LEFT_WIDTH_DEFAULT;
     int const ROI_RIGHT_HEIGHT_DEFAULT = ROI_LEFT_HEIGHT_DEFAULT;
 
+    // Dynamic ROI variables
+    int roi_left_x = ROI_LEFT_X_DEFAULT;
+    int roi_left_y = ROI_LEFT_Y_DEFAULT;
+    int roi_left_width = ROI_LEFT_WIDTH_DEFAULT;
+    int roi_left_height = ROI_LEFT_HEIGHT_DEFAULT;
+
+    int roi_right_x = ROI_RIGHT_X_DEFAULT;
+    int roi_right_y = ROI_RIGHT_Y_DEFAULT;
+    int roi_right_width = ROI_RIGHT_WIDTH_DEFAULT;
+    int roi_right_height = ROI_RIGHT_HEIGHT_DEFAULT;
+
     // Create Default ROI
-    Rect left_roi = Rect(ROI_LEFT_X_DEFAULT,ROI_LEFT_Y_DEFAULT,ROI_LEFT_WIDTH_DEFAULT,ROI_LEFT_HEIGHT_DEFAULT);
-    Rect right_roi = Rect(ROI_RIGHT_X_DEFAULT,ROI_RIGHT_Y_DEFAULT,ROI_RIGHT_WIDTH_DEFAULT,ROI_RIGHT_HEIGHT_DEFAULT);
+    Rect LEFT_ROI_DEFAULT = Rect(ROI_LEFT_X_DEFAULT,ROI_LEFT_Y_DEFAULT,ROI_LEFT_WIDTH_DEFAULT,ROI_LEFT_HEIGHT_DEFAULT);
+    Rect RIGHT_ROI_DEFAULT = Rect(ROI_RIGHT_X_DEFAULT,ROI_RIGHT_Y_DEFAULT,ROI_RIGHT_WIDTH_DEFAULT,ROI_RIGHT_HEIGHT_DEFAULT);
+
+    Rect left_roi = LEFT_ROI_DEFAULT;
+    Rect right_roi = RIGHT_ROI_DEFAULT;
+
+    // When activity is generated in the initial ROI, trigger ball_in_flight bool
+    // Or maybe when width of ball is too great - i.e. when too close
+    bool ball_in_flight = false;
 
     String current_image_file_left;
     String current_image_file_right;
-
 
     // A vector to hold an array of corner coordinates
     vector<Point2f> corners_left, corners_right;
@@ -161,16 +178,26 @@ int main(int argc, char const *argv[]) {
             circle(frame_right_thresh, Point(ROI_RIGHT_X_DEFAULT+corners_right[i].x,ROI_RIGHT_Y_DEFAULT+corners_right[i].y), 20, Scalar(100,180,80), 1);
         }
 
-        // Draw RoI as a rectangle
-        rectangle(frame_left_thresh, left_roi, Scalar(200,80,0));
-        rectangle(frame_right_thresh, right_roi, Scalar(100,180,80));
+
+        // Let the corners trigger the ball in flight bool once
+        if(ball_in_flight || (corners_left.size() > 0 && corners_left.size() > 0)){
+            cout << "L corners:" << corners_left.size() << endl;
+            cout << "R corners:" << corners_right.size() << endl << endl;
+            ball_in_flight = true;
+        }
+
 
 
         cvtColor(frame_left, frame_left_display, COLOR_GRAY2BGR);
         cvtColor(frame_right, frame_right_display, COLOR_GRAY2BGR);
-        rectangle(frame_left_display, left_roi, Scalar(200,80,0));
-        rectangle(frame_right_display, right_roi, Scalar(100,180,80));
 
+        if(ball_in_flight) {
+            // Draw RoI as a rectangle
+            rectangle(frame_left_thresh, left_roi, Scalar(200,80,0));
+            rectangle(frame_right_thresh, right_roi, Scalar(100,180,80));
+            rectangle(frame_left_display, left_roi, Scalar(200,80,0));
+            rectangle(frame_right_display, right_roi, Scalar(100,180,80));
+        }
 
         // Show the image output for a sanity check
         imshow("Left", frame_left_display);
@@ -183,7 +210,7 @@ int main(int argc, char const *argv[]) {
         imshow("Right Threshold", frame_right_thresh);
 
         // Need this for images to display, or else output windows just show up gray
-        keypress = waitKey(300);
+        keypress = waitKey(30);
 
         // Update prev frames with current frames
         frame_left.copyTo(frame_left_prev);
@@ -192,6 +219,11 @@ int main(int argc, char const *argv[]) {
         i++;
         if(i > MAX_IMAGE_NUMBER) {
             i = MIN_IMAGE_NUMBER;
+            // TODO: When ball gets too close, set ball_in_flight to false so ROI can be reset to the default
+            // Reset
+            left_roi = LEFT_ROI_DEFAULT;
+            right_roi = RIGHT_ROI_DEFAULT;
+            ball_in_flight = false;
         }
     }
 
