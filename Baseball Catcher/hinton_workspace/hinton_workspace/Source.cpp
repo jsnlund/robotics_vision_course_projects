@@ -30,20 +30,25 @@ int main(int argc, char const *argv[]) {
 
     Mat frame_left; // allocate an image buffer object
     Mat frame_left_prev;
-    Mat frame_display_left; // the frame to work with
     Mat frame_left_diff;
 
     Mat frame_right; // allocate an image buffer object
     Mat frame_right_prev;
-    Mat frame_display_right; // the frame to work with
     Mat frame_right_diff;
 
     String current_image_file_left;
     String current_image_file_right;
 
 
-    // for (int i = MIN_IMAGE_NUMBER; i <= MAX_IMAGE_NUMBER; ++i) {
+    // Load the first image
     int i = MIN_IMAGE_NUMBER;
+    current_image_file_left = FOLDER + IMAGE_PREFIX_LEFT + helper + to_string(MIN_IMAGE_NUMBER) + IMAGE_FILE_SUFFIX;
+    current_image_file_right = FOLDER + IMAGE_PREFIX_RIGHT + helper + to_string(MIN_IMAGE_NUMBER) + IMAGE_FILE_SUFFIX;
+    frame_left_prev = imread(current_image_file_left, CV_LOAD_IMAGE_COLOR);
+    frame_right_prev = imread(current_image_file_right, CV_LOAD_IMAGE_COLOR);
+    i++;
+
+    // for (int i = MIN_IMAGE_NUMBER; i <= MAX_IMAGE_NUMBER; ++i) {
     while (keypress != ESC_KEY) {
         // Accommodate switch from 0x to xx
         if(i < 10 && i >= 0){
@@ -77,29 +82,30 @@ int main(int argc, char const *argv[]) {
             return -1;
         }
 
-        //  Get a grayscale copy to work on
-        frame_left.copyTo(frame_display_left);
-        frame_right.copyTo(frame_display_right);
-        cvtColor(frame_display_left, frame_display_left, COLOR_BGR2GRAY);
-        cvtColor(frame_display_right, frame_display_right, COLOR_BGR2GRAY);
+        // cvtColor(frame_display_left, frame_display_left, COLOR_BGR2GRAY);
+        // cvtColor(frame_display_right, frame_display_right, COLOR_BGR2GRAY);
 
         //// Process the image
 
 
         // Absolute difference
-        // absdiff(frame_left, frame_left_prev, frame_left_diff);
-        // absdiff(frame_right, frame_right_prev, frame_right_diff);
+        absdiff(frame_left, frame_left_prev, frame_left_diff);
+        absdiff(frame_right, frame_right_prev, frame_right_diff);
 
 
         // Show the image output for a sanity check
         imshow("Left", frame_left);
         imshow("Right", frame_right);
 
-        // imshow("Left Diff", frame_left_diff);
-        // imshow("Right Diff", frame_right_diff);
+        imshow("Left Diff", frame_left_diff);
+        imshow("Right Diff", frame_right_diff);
 
         // Need this for images to display, or else output windows just show up gray
         keypress = waitKey(30);
+
+        // Update prev frames with current frames
+        frame_left.copyTo(frame_left_prev);
+        frame_right.copyTo(frame_right_prev);
 
         i++;
         if(i > MAX_IMAGE_NUMBER) {
