@@ -38,6 +38,20 @@ int main(int argc, char const *argv[]) {
     Mat frame_right_diff;
     Mat frame_right_thresh;
 
+    // ROI Offset Constants
+    int const ROI_LEFT_X = 200;
+    int const ROI_LEFT_Y = 0;
+    int const ROI_LEFT_WIDTH = 400;
+    int const ROI_LEFT_HEIGHT = 200;
+
+    int const ROI_RIGHT_X = 200;
+    int const ROI_RIGHT_Y = 0;
+    int const ROI_RIGHT_WIDTH = 200;
+    int const ROI_RIGHT_HEIGHT = 200;
+
+
+
+
     String current_image_file_left;
     String current_image_file_right;
 
@@ -110,10 +124,10 @@ int main(int argc, char const *argv[]) {
         corners_left.clear();
         corners_right.clear();
         // TODO: Apply ROI
-        // goodFeaturesToTrack(frame_left_thresh(Rect(0,0,200,200)), corners_left, 10, 0.01, 10);
-        // goodFeaturesToTrack(frame_right_thresh(Rect(0,0,200,200)), corners_right, 10, 0.01, 10);
-        goodFeaturesToTrack(frame_left_thresh, corners_left, 10, 0.01, 10);
-        goodFeaturesToTrack(frame_right_thresh, corners_right, 10, 0.01, 10);
+        goodFeaturesToTrack(frame_left_thresh(Rect(ROI_LEFT_X,ROI_LEFT_Y,ROI_LEFT_WIDTH,ROI_LEFT_HEIGHT)), corners_left, 10, 0.01, 10);
+        goodFeaturesToTrack(frame_right_thresh(Rect(ROI_RIGHT_X,ROI_RIGHT_Y,ROI_RIGHT_WIDTH,ROI_RIGHT_HEIGHT)), corners_right, 10, 0.01, 10);
+        // goodFeaturesToTrack(frame_left_thresh, corners_left, 10, 0.01, 10);
+        // goodFeaturesToTrack(frame_right_thresh, corners_right, 10, 0.01, 10);
         // cornerSubPix(frame_left_thresh, corners_left, Size(5,5), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001 ) );
         // cornerSubPix(frame_right_thresh, corners_right, Size(5,5), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001 ) );
 
@@ -121,10 +135,10 @@ int main(int argc, char const *argv[]) {
         cvtColor(frame_right_thresh, frame_right_thresh, COLOR_GRAY2BGR);
         // Draw detected corners
         for (int i = 0; i < corners_left.size(); ++i){
-            circle(frame_left_thresh, Point(corners_left[i].x,corners_left[i].y), 20, Scalar(200,80,0), 3);
+            circle(frame_left_thresh, Point(ROI_LEFT_X+corners_left[i].x,ROI_LEFT_Y+corners_left[i].y), 20, Scalar(200,80,0), 3);
         }
         for (int i = 0; i < corners_right.size(); ++i){
-            circle(frame_right_thresh, Point(corners_right[i].x,corners_right[i].y), 20, Scalar(100,180,80), 3);
+            circle(frame_right_thresh, Point(ROI_RIGHT_X+corners_right[i].x,ROI_RIGHT_Y+corners_right[i].y), 20, Scalar(100,180,80), 3);
         }
 
         // Show the image output for a sanity check
