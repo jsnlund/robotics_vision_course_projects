@@ -31,10 +31,12 @@ int main(int argc, char const *argv[]) {
     Mat frame_left; // allocate an image buffer object
     Mat frame_left_prev;
     Mat frame_left_diff;
+    Mat frame_left_thresh;
 
     Mat frame_right; // allocate an image buffer object
     Mat frame_right_prev;
     Mat frame_right_diff;
+    Mat frame_right_thresh;
 
     String current_image_file_left;
     String current_image_file_right;
@@ -93,12 +95,23 @@ int main(int argc, char const *argv[]) {
         absdiff(frame_right, frame_right_prev, frame_right_diff);
 
 
+        GaussianBlur(frame_left_diff, frame_left_thresh, Size(7,7), 3.0, 3.0);
+        GaussianBlur(frame_right_diff, frame_right_thresh, Size(7,7), 3.0, 3.0);
+
+        threshold(frame_left_thresh,frame_left_thresh,5,256,THRESH_BINARY);
+        threshold(frame_left_thresh,frame_right_thresh,5,256,THRESH_BINARY);
+
+
+
         // Show the image output for a sanity check
         imshow("Left", frame_left);
         imshow("Right", frame_right);
 
         imshow("Left Diff", frame_left_diff);
         imshow("Right Diff", frame_right_diff);
+
+        imshow("Left Threshold", frame_left_thresh);
+        imshow("Right Threshold", frame_right_thresh);
 
         // Need this for images to display, or else output windows just show up gray
         keypress = waitKey(30);
