@@ -35,6 +35,7 @@ int main(int argc, char const *argv[]) {
     Mat frame_left_prev;
     Mat frame_left_diff;
     Mat frame_left_thresh;
+    Mat frame_left_canny;
     Mat frame_left_first;
     Mat frame_left_first_diff;
     Mat frame_left_first_diff_thresh;
@@ -44,6 +45,7 @@ int main(int argc, char const *argv[]) {
     Mat frame_right_prev;
     Mat frame_right_diff;
     Mat frame_right_thresh;
+    Mat frame_right_canny;
     Mat frame_right_first;
     Mat frame_right_first_diff;
     Mat frame_right_first_diff_thresh;
@@ -60,15 +62,15 @@ int main(int argc, char const *argv[]) {
     int const ROI_RIGHT_HEIGHT_DEFAULT = ROI_LEFT_HEIGHT_DEFAULT;
 
     // Dynamic ROI variables
-    int roi_left_x = ROI_LEFT_X_DEFAULT;
-    int roi_left_y = ROI_LEFT_Y_DEFAULT;
-    int roi_left_width = ROI_LEFT_WIDTH_DEFAULT;
-    int roi_left_height = ROI_LEFT_HEIGHT_DEFAULT;
+    // int roi_left_x = ROI_LEFT_X_DEFAULT;
+    // int roi_left_y = ROI_LEFT_Y_DEFAULT;
+    // int roi_left_width = ROI_LEFT_WIDTH_DEFAULT;
+    // int roi_left_height = ROI_LEFT_HEIGHT_DEFAULT;
 
-    int roi_right_x = ROI_RIGHT_X_DEFAULT;
-    int roi_right_y = ROI_RIGHT_Y_DEFAULT;
-    int roi_right_width = ROI_RIGHT_WIDTH_DEFAULT;
-    int roi_right_height = ROI_RIGHT_HEIGHT_DEFAULT;
+    // int roi_right_x = ROI_RIGHT_X_DEFAULT;
+    // int roi_right_y = ROI_RIGHT_Y_DEFAULT;
+    // int roi_right_width = ROI_RIGHT_WIDTH_DEFAULT;
+    // int roi_right_height = ROI_RIGHT_HEIGHT_DEFAULT;
 
     // Create Default ROI
     Rect LEFT_ROI_DEFAULT = Rect(ROI_LEFT_X_DEFAULT,ROI_LEFT_Y_DEFAULT,ROI_LEFT_WIDTH_DEFAULT,ROI_LEFT_HEIGHT_DEFAULT);
@@ -89,6 +91,11 @@ int main(int argc, char const *argv[]) {
 
     // TODO: Erosion kernel - create one, or use default via Mat()?
     // Mat erosionKernel = getStructuringElement(int shape, Size ksize, Point anchor=Point(-1,-1))
+
+    // For find contours
+    vector<vector<Point>> contours_left;
+    vector<Vec4i> hierarchy_left;
+
 
     // Load the first image
     int i = MIN_IMAGE_NUMBER;
@@ -170,6 +177,8 @@ int main(int argc, char const *argv[]) {
 
         cvtColor(frame_left_thresh, frame_left_thresh, COLOR_GRAY2BGR);
         cvtColor(frame_right_thresh, frame_right_thresh, COLOR_GRAY2BGR);
+
+
         // Draw detected corners
         for (int i = 0; i < corners_left.size(); ++i){
             circle(frame_left_thresh, Point(ROI_LEFT_X_DEFAULT+corners_left[i].x,ROI_LEFT_Y_DEFAULT+corners_left[i].y), 20, Scalar(200,80,0), 1);
@@ -189,18 +198,12 @@ int main(int argc, char const *argv[]) {
             ball_in_flight = true;
         }
 
-
-
         cvtColor(frame_left, frame_left_display, COLOR_GRAY2BGR);
         cvtColor(frame_right, frame_right_display, COLOR_GRAY2BGR);
 
-        if(ball_in_flight) {
-            // Draw RoI as a rectangle
-            rectangle(frame_left_thresh, left_roi, Scalar(200,80,0));
-            rectangle(frame_right_thresh, right_roi, Scalar(100,180,80));
-            rectangle(frame_left_display, left_roi, Scalar(200,80,0));
-            rectangle(frame_right_display, right_roi, Scalar(100,180,80));
 
+
+        if(ball_in_flight) {
             absdiff(frame_left, frame_left_first, frame_left_first_diff);
             absdiff(frame_right, frame_right_first, frame_right_first_diff);
 
@@ -216,11 +219,33 @@ int main(int argc, char const *argv[]) {
             threshold(frame_left_first_diff_thresh, frame_left_first_diff_thresh, 5, 256, THRESH_BINARY);
             threshold(frame_right_first_diff_thresh, frame_right_first_diff_thresh, 5, 256, THRESH_BINARY);
 
+            contours_left.clear();
+            hierarchy_left.clear();
+            Canny(frame_left_first_diff_thresh, frame_left_canny, 10, 200, 3);
+            // Find contours modifies the input image!! So pass in a copy
+            // findContours(frame_left_first_diff_thresh.clone()(left_roi), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(left_roi.x, left_roi.y));
+            // CV_RETR_TREE CV_RETR_EXTERNAL
+            // CV_CHAIN_APPROX_NONE CV_CHAIN_APPROX_SIMPLE
+            findContours(frame_left_first_diff_thresh.clone(), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
+            cout << "Left Contours: " << contours_left.size() << endl;
+
+            imshow("Left Canny", frame_left_canny);
+
             cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
             cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
+            if(contours_left.size()){
+                cout << "drawContours!" << endl;
+                drawContours(frame_left_first_diff_thresh, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
+            }
 
             imshow("Left Thresh First-Curr", frame_left_first_diff_thresh);
             imshow("Right Thresh First-Curr", frame_right_first_diff_thresh);
+
+            // Draw RoI as a rectangle, only when ball is in motion
+            rectangle(frame_left_thresh, left_roi, Scalar(200,80,0));
+            rectangle(frame_right_thresh, right_roi, Scalar(100,180,80));
+            rectangle(frame_left_display, left_roi, Scalar(200,80,0));
+            rectangle(frame_right_display, right_roi, Scalar(100,180,80));
         }
 
         // Show the image output for a sanity check
@@ -233,8 +258,9 @@ int main(int argc, char const *argv[]) {
         imshow("Left Threshold", frame_left_thresh);
         imshow("Right Threshold", frame_right_thresh);
 
+
         // Need this for images to display, or else output windows just show up gray
-        keypress = waitKey(30);
+        keypress = waitKey(300);
 
         // Update prev frames with current frames
         frame_left.copyTo(frame_left_prev);
