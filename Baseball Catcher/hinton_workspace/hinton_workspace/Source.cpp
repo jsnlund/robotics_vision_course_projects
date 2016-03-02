@@ -1,6 +1,6 @@
 // Project 3 Workspace for Michael Hinton
 //
-// TODO: Test out abs diff to locate baseball
+// abs diff to locate baseball
 // Calculate ROI
 // TODO: Calibrate camera?
 // TODO: Look at HW 3 task 5 code for real-world points?
@@ -30,28 +30,33 @@ int main(int argc, char const *argv[]) {
 
     // allocate an image buffer objects
     Mat frame_left;
+    Mat frame_left_display;
     Mat frame_left_prev;
     Mat frame_left_diff;
     Mat frame_left_thresh;
     Mat frame_left_first;
 
     Mat frame_right;
+    Mat frame_right_display;
     Mat frame_right_prev;
     Mat frame_right_diff;
     Mat frame_right_thresh;
     Mat frame_right_first;
 
-    // ROI Offset Constants
-    int const ROI_LEFT_X = 200;
-    int const ROI_LEFT_Y = 0;
-    int const ROI_LEFT_WIDTH = 400;
-    int const ROI_LEFT_HEIGHT = 200;
+    // ROI Initial Offset Constants
+    int const ROI_LEFT_X_DEFAULT = 320;
+    int const ROI_LEFT_Y_DEFAULT = 60;
+    int const ROI_LEFT_WIDTH_DEFAULT = 100;
+    int const ROI_LEFT_HEIGHT_DEFAULT = 100;
 
-    int const ROI_RIGHT_X = 200;
-    int const ROI_RIGHT_Y = 0;
-    int const ROI_RIGHT_WIDTH = 200;
-    int const ROI_RIGHT_HEIGHT = 200;
+    int const ROI_RIGHT_X_DEFAULT = 235;
+    int const ROI_RIGHT_Y_DEFAULT = 55;
+    int const ROI_RIGHT_WIDTH_DEFAULT = ROI_LEFT_WIDTH_DEFAULT;
+    int const ROI_RIGHT_HEIGHT_DEFAULT = ROI_LEFT_HEIGHT_DEFAULT;
 
+    // Create Default ROI
+    Rect left_roi = Rect(ROI_LEFT_X_DEFAULT,ROI_LEFT_Y_DEFAULT,ROI_LEFT_WIDTH_DEFAULT,ROI_LEFT_HEIGHT_DEFAULT);
+    Rect right_roi = Rect(ROI_RIGHT_X_DEFAULT,ROI_RIGHT_Y_DEFAULT,ROI_RIGHT_WIDTH_DEFAULT,ROI_RIGHT_HEIGHT_DEFAULT);
 
     String current_image_file_left;
     String current_image_file_right;
@@ -137,14 +142,12 @@ int main(int argc, char const *argv[]) {
         threshold(frame_right_thresh, frame_right_thresh, 5, 256, THRESH_BINARY);
         // adaptiveThreshold(frame_right_diff, frame_right_thresh, 5, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0.0);
 
-        // TODO: Try out corner detection
+
+        // corner detection
         corners_left.clear();
         corners_right.clear();
-        // TODO: Apply ROI
-        goodFeaturesToTrack(frame_left_thresh(Rect(ROI_LEFT_X,ROI_LEFT_Y,ROI_LEFT_WIDTH,ROI_LEFT_HEIGHT)), corners_left, 10, 0.01, 10);
-        goodFeaturesToTrack(frame_right_thresh(Rect(ROI_RIGHT_X,ROI_RIGHT_Y,ROI_RIGHT_WIDTH,ROI_RIGHT_HEIGHT)), corners_right, 10, 0.01, 10);
-        // goodFeaturesToTrack(frame_left_thresh, corners_left, 10, 0.01, 10);
-        // goodFeaturesToTrack(frame_right_thresh, corners_right, 10, 0.01, 10);
+        goodFeaturesToTrack(frame_left_thresh(left_roi), corners_left, 10, 0.01, 10);
+        goodFeaturesToTrack(frame_right_thresh(right_roi), corners_right, 10, 0.01, 10);
         // cornerSubPix(frame_left_thresh, corners_left, Size(5,5), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001 ) );
         // cornerSubPix(frame_right_thresh, corners_right, Size(5,5), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001 ) );
 
@@ -152,20 +155,26 @@ int main(int argc, char const *argv[]) {
         cvtColor(frame_right_thresh, frame_right_thresh, COLOR_GRAY2BGR);
         // Draw detected corners
         for (int i = 0; i < corners_left.size(); ++i){
-            circle(frame_left_thresh, Point(ROI_LEFT_X+corners_left[i].x,ROI_LEFT_Y+corners_left[i].y), 20, Scalar(200,80,0), 1);
+            circle(frame_left_thresh, Point(ROI_LEFT_X_DEFAULT+corners_left[i].x,ROI_LEFT_Y_DEFAULT+corners_left[i].y), 20, Scalar(200,80,0), 1);
         }
         for (int i = 0; i < corners_right.size(); ++i){
-            circle(frame_right_thresh, Point(ROI_RIGHT_X+corners_right[i].x,ROI_RIGHT_Y+corners_right[i].y), 20, Scalar(100,180,80), 1);
+            circle(frame_right_thresh, Point(ROI_RIGHT_X_DEFAULT+corners_right[i].x,ROI_RIGHT_Y_DEFAULT+corners_right[i].y), 20, Scalar(100,180,80), 1);
         }
 
-        // TODO: Draw RoI as a rectangle
-        rectangle(frame_left_thresh, Rect(ROI_LEFT_X,ROI_LEFT_Y,ROI_LEFT_WIDTH,ROI_LEFT_HEIGHT), Scalar(200,80,0));
-        rectangle(frame_right_thresh, Rect(ROI_RIGHT_X,ROI_RIGHT_Y,ROI_RIGHT_WIDTH,ROI_RIGHT_HEIGHT), Scalar(100,180,80));
+        // Draw RoI as a rectangle
+        rectangle(frame_left_thresh, left_roi, Scalar(200,80,0));
+        rectangle(frame_right_thresh, right_roi, Scalar(100,180,80));
+
+
+        cvtColor(frame_left, frame_left_display, COLOR_GRAY2BGR);
+        cvtColor(frame_right, frame_right_display, COLOR_GRAY2BGR);
+        rectangle(frame_left_display, left_roi, Scalar(200,80,0));
+        rectangle(frame_right_display, right_roi, Scalar(100,180,80));
 
 
         // Show the image output for a sanity check
-        imshow("Left", frame_left);
-        imshow("Right", frame_right);
+        imshow("Left", frame_left_display);
+        imshow("Right", frame_right_display);
 
         imshow("Left Diff", frame_left_diff);
         imshow("Right Diff", frame_right_diff);
