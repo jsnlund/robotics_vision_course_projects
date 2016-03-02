@@ -15,53 +15,97 @@ using namespace cv;
 using namespace std;
 
 int main(int argc, char const *argv[]) {
-    String const IMAGE_FILE_PREFIX = "12ms1";
+    String const FOLDER = "shot_10\\";
+    String const IMAGE_PREFIX_LEFT = "L";
+    String const IMAGE_PREFIX_RIGHT = "R";
     String const IMAGE_FILE_SUFFIX = ".bmp";
+    String helper = "0";
 
-    int MAX_CALIBRATION_IMAGE_COUNT = 40;
+    // Keyboard codes
+    int const ESC_KEY = 27;
+    int keypress = 0;
 
-    Mat frame; // The originals
-    Mat frame_prev; // The previous frame
-    // Mat frame_undistored; // After calling undistort
-    Mat frame_diff; // After using absdiff
+    int const MIN_IMAGE_NUMBER = 0;
+    int const MAX_IMAGE_NUMBER = 127;
 
-    // Initialize a 3x3 matrix
-    Mat cameraMatrix = Mat::zeros(3, 3, CV_64F);
-    // Initialize 5x1 coefficient matrix
-    Mat distCoeffs = Mat::zeros(5, 1, CV_64F);
+    Mat frame_left; // allocate an image buffer object
+    Mat frame_left_prev;
+    Mat frame_display_left; // the frame to work with
+    Mat frame_left_diff;
 
-    //// Read in intrinsic and distortion parameters from a file
-    // cout << cameraMatrix << endl;
-    // cout << distCoeffs << endl;
+    Mat frame_right; // allocate an image buffer object
+    Mat frame_right_prev;
+    Mat frame_display_right; // the frame to work with
+    Mat frame_right_diff;
 
-    // Read yaml files using FileStorage
-    FileStorage fs("task5\\task5_parameters.yaml", FileStorage::READ);
+    String current_image_file_left;
+    String current_image_file_right;
 
-    fs["distortion"] >> distCoeffs;
-    fs["intrinsic"] >> cameraMatrix;
 
-    cout << "Printing info from YAML files!" << endl;
-    cout << distCoeffs << endl;
-    cout << cameraMatrix << endl;
+    // for (int i = MIN_IMAGE_NUMBER; i <= MAX_IMAGE_NUMBER; ++i) {
+    int i = MIN_IMAGE_NUMBER;
+    while (keypress != ESC_KEY) {
+        // Accommodate switch from 0x to xx
+        if(i < 10 && i >= 0){
+            helper = "0";
+        }
+        else {
+            helper = "";
+        }
 
-    // load all 40 images and calculate the diff between the original and undistorted versions
-    for (int i = 0; i < MAX_CALIBRATION_IMAGE_COUNT; ++i) {
-        frame = imread(IMAGE_FILE_PREFIX + to_string(i) + IMAGE_FILE_SUFFIX, CV_LOAD_IMAGE_COLOR);
+        // Calculate the full path to the image file
+        current_image_file_left = FOLDER + IMAGE_PREFIX_LEFT + helper + to_string(i) + IMAGE_FILE_SUFFIX;
+        current_image_file_right = FOLDER + IMAGE_PREFIX_RIGHT + helper + to_string(i) + IMAGE_FILE_SUFFIX;
 
-        // Undistort the images
-        undistort(frame, frame_undistored, cameraMatrix, distCoeffs);
+        // Load the image
+        frame_left = imread(current_image_file_left, CV_LOAD_IMAGE_COLOR);
+        frame_right = imread(current_image_file_right, CV_LOAD_IMAGE_COLOR);
+
+        // Exit if no images were grabbed
+        if( frame_left.empty() ) {
+            cout <<  "Could not open or find the left image" << std::endl ;
+            // Show the image file path
+            cout << "Left Image File: " << current_image_file_left << endl;
+            return -1;
+        }
+
+        // Exit if no images were grabbed
+        if( frame_right.empty() ) {
+            cout <<  "Could not open or find the right image" << std::endl ;
+            // Show the image file path
+            cout << "Right Image File: " << current_image_file_left << endl;
+            return -1;
+        }
+
+        //  Get a grayscale copy to work on
+        frame_left.copyTo(frame_display_left);
+        frame_right.copyTo(frame_display_right);
+        cvtColor(frame_display_left, frame_display_left, COLOR_BGR2GRAY);
+        cvtColor(frame_display_right, frame_display_right, COLOR_BGR2GRAY);
+
+        //// Process the image
+
 
         // Absolute difference
-        absdiff(frame, frame_undistored, frame_diff);
+        // absdiff(frame_left, frame_left_prev, frame_left_diff);
+        // absdiff(frame_right, frame_right_prev, frame_right_diff);
 
-        // Save the diff images
-        if(!imwrite("task6\\diff" + to_string(i) + IMAGE_FILE_SUFFIX, frame_diff)){
-            cout << "ERROR: Image \"task6\\diff" + to_string(i) + IMAGE_FILE_SUFFIX + "\" failed to write! Does the destination folder exist?" << endl;
-            return 0;
+
+        // Show the image output for a sanity check
+        imshow("Left", frame_left);
+        imshow("Right", frame_right);
+
+        // imshow("Left Diff", frame_left_diff);
+        // imshow("Right Diff", frame_right_diff);
+
+        // Need this for images to display, or else output windows just show up gray
+        keypress = waitKey(30);
+
+        i++;
+        if(i > MAX_IMAGE_NUMBER) {
+            i = MIN_IMAGE_NUMBER;
         }
     }
-
-    cout << "Absolute diffs of the calibration images successfully produced!" << endl;
 
     return 0;
 }
