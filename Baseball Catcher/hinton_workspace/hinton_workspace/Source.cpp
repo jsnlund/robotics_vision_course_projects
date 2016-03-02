@@ -60,6 +60,8 @@ int main(int argc, char const *argv[]) {
     // A vector to hold an array of corner coordinates
     vector<Point2f> corners_left, corners_right;
 
+    // TODO: Erosion kernel - create one, or use default via Mat()?
+    // Mat erosionKernel = getStructuringElement(int shape, Size ksize, Point anchor=Point(-1,-1))
 
     // Load the first image
     int i = MIN_IMAGE_NUMBER;
@@ -116,17 +118,22 @@ int main(int argc, char const *argv[]) {
         absdiff(frame_right, frame_right_prev, frame_right_diff);
 
         // Try out erode
-        // erode(InputArray src, OutputArray dst, InputArray kernel, Point anchor=Point(-1,-1), int iterations=1, int borderType=BORDER_CONSTANT, const Scalar& borderValue=morphologyDefaultBorderValue() )
+        #define ITERATIONS 1
+        erode(frame_left_diff, frame_left_diff, Mat(), Point(-1,-1), ITERATIONS);
+        // erode(frame_right_diff, frame_right_diff, Mat());
+        // http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_imgproc/py_morphological_ops/py_morphological_ops.html
+
 
         // Try other blurring factors and sizes
         // Sizes must be an odd number
         // Try Size(31,31), 15, 15 to get rid of curtain movement
-        // GaussianBlur(frame_left_diff, frame_left_thresh, Size(7,7), 3.0, 3.0);
+        GaussianBlur(frame_left_diff, frame_left_diff, Size(7,7), 3.0, 3.0);
         // GaussianBlur(frame_right_diff, frame_right_thresh, Size(7,7), 3.0, 3.0);
-        GaussianBlur(frame_left_diff, frame_left_thresh, Size(31,31), 15.0, 15.0);
+        // GaussianBlur(frame_left_diff, frame_left_diff, Size(31,31), 15.0, 15.0);
         GaussianBlur(frame_right_diff, frame_right_thresh, Size(31,31), 15.0, 15.0);
 
-        threshold(frame_left_thresh, frame_left_thresh, 5, 256, THRESH_BINARY);
+
+        threshold(frame_left_diff, frame_left_thresh, 5, 256, THRESH_BINARY);
         threshold(frame_right_thresh, frame_right_thresh, 5, 256, THRESH_BINARY);
         // adaptiveThreshold(frame_right_diff, frame_right_thresh, 5, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0.0);
 
@@ -145,11 +152,16 @@ int main(int argc, char const *argv[]) {
         cvtColor(frame_right_thresh, frame_right_thresh, COLOR_GRAY2BGR);
         // Draw detected corners
         for (int i = 0; i < corners_left.size(); ++i){
-            circle(frame_left_thresh, Point(ROI_LEFT_X+corners_left[i].x,ROI_LEFT_Y+corners_left[i].y), 20, Scalar(200,80,0), 3);
+            circle(frame_left_thresh, Point(ROI_LEFT_X+corners_left[i].x,ROI_LEFT_Y+corners_left[i].y), 20, Scalar(200,80,0), 1);
         }
         for (int i = 0; i < corners_right.size(); ++i){
-            circle(frame_right_thresh, Point(ROI_RIGHT_X+corners_right[i].x,ROI_RIGHT_Y+corners_right[i].y), 20, Scalar(100,180,80), 3);
+            circle(frame_right_thresh, Point(ROI_RIGHT_X+corners_right[i].x,ROI_RIGHT_Y+corners_right[i].y), 20, Scalar(100,180,80), 1);
         }
+
+        // TODO: Draw RoI as a rectangle
+        rectangle(frame_left_thresh, Rect(ROI_LEFT_X,ROI_LEFT_Y,ROI_LEFT_WIDTH,ROI_LEFT_HEIGHT), Scalar(200,80,0));
+        rectangle(frame_right_thresh, Rect(ROI_RIGHT_X,ROI_RIGHT_Y,ROI_RIGHT_WIDTH,ROI_RIGHT_HEIGHT), Scalar(100,180,80));
+
 
         // Show the image output for a sanity check
         imshow("Left", frame_left);
@@ -162,7 +174,7 @@ int main(int argc, char const *argv[]) {
         imshow("Right Threshold", frame_right_thresh);
 
         // Need this for images to display, or else output windows just show up gray
-        keypress = waitKey(30);
+        keypress = waitKey(300);
 
         // Update prev frames with current frames
         frame_left.copyTo(frame_left_prev);
