@@ -37,6 +37,7 @@ int main(int argc, char const *argv[]) {
     Mat frame_left_thresh;
     Mat frame_left_first;
     Mat frame_left_first_diff;
+    Mat frame_left_first_diff_thresh;
 
     Mat frame_right;
     Mat frame_right_display;
@@ -45,6 +46,7 @@ int main(int argc, char const *argv[]) {
     Mat frame_right_thresh;
     Mat frame_right_first;
     Mat frame_right_first_diff;
+    Mat frame_right_first_diff_thresh;
 
     // ROI Initial Offset Constants
     int const ROI_LEFT_X_DEFAULT = 320;
@@ -202,10 +204,23 @@ int main(int argc, char const *argv[]) {
             absdiff(frame_left, frame_left_first, frame_left_first_diff);
             absdiff(frame_right, frame_right_first, frame_right_first_diff);
 
-
             // Show the abs difference between first and curr frames
             imshow("Left Diff First-Curr", frame_left_first_diff);
             imshow("Right Diff First-Curr", frame_right_first_diff);
+
+            GaussianBlur(frame_left_first_diff, frame_left_first_diff_thresh, Size(7,7), 3.0, 3.0);
+            // GaussianBlur(frame_right_diff, frame_right_thresh, Size(7,7), 3.0, 3.0);
+            // GaussianBlur(frame_left_diff, frame_left_diff, Size(31,31), 15.0, 15.0);
+            GaussianBlur(frame_right_first_diff, frame_right_first_diff_thresh, Size(31,31), 15.0, 15.0);
+
+            threshold(frame_left_first_diff_thresh, frame_left_first_diff_thresh, 5, 256, THRESH_BINARY);
+            threshold(frame_right_first_diff_thresh, frame_right_first_diff_thresh, 5, 256, THRESH_BINARY);
+
+            cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
+            cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
+
+            imshow("Left Thresh First-Curr", frame_left_first_diff_thresh);
+            imshow("Right Thresh First-Curr", frame_right_first_diff_thresh);
         }
 
         // Show the image output for a sanity check
