@@ -36,6 +36,7 @@ int main(int argc, char const *argv[]) {
     Mat frame_left_diff;
     Mat frame_left_thresh;
     Mat frame_left_first;
+    Mat frame_left_first_diff;
 
     Mat frame_right;
     Mat frame_right_display;
@@ -43,6 +44,7 @@ int main(int argc, char const *argv[]) {
     Mat frame_right_diff;
     Mat frame_right_thresh;
     Mat frame_right_first;
+    Mat frame_right_first_diff;
 
     // ROI Initial Offset Constants
     int const ROI_LEFT_X_DEFAULT = 320;
@@ -90,11 +92,8 @@ int main(int argc, char const *argv[]) {
     int i = MIN_IMAGE_NUMBER;
     current_image_file_left << FOLDER << IMAGE_PREFIX_LEFT << setw(2) << setfill('0') << to_string(MIN_IMAGE_NUMBER) << IMAGE_FILE_SUFFIX;
     current_image_file_right << FOLDER << IMAGE_PREFIX_RIGHT << setw(2) << setfill('0') << to_string(MIN_IMAGE_NUMBER) << IMAGE_FILE_SUFFIX;
-    frame_left_first = imread(current_image_file_left.str(), CV_LOAD_IMAGE_GRAYSCALE);
-    frame_right_first = imread(current_image_file_right.str(), CV_LOAD_IMAGE_GRAYSCALE);
-
-    frame_left_first.copyTo(frame_left_prev);
-    frame_right_first.copyTo(frame_right_prev);
+    frame_left_prev = imread(current_image_file_left.str(), CV_LOAD_IMAGE_GRAYSCALE);
+    frame_right_prev = imread(current_image_file_right.str(), CV_LOAD_IMAGE_GRAYSCALE);
 
     i++;
 
@@ -179,9 +178,12 @@ int main(int argc, char const *argv[]) {
 
 
         // Let the corners trigger the ball in flight bool once
-        if(ball_in_flight || (corners_left.size() > 0 && corners_left.size() > 0)){
+        if(ball_in_flight == false && (corners_left.size() > 0 && corners_left.size() > 0)){
             cout << "L corners:" << corners_left.size() << endl;
             cout << "R corners:" << corners_right.size() << endl << endl;
+            // Because we found corners, set the previous image as the first image
+            frame_left_prev.copyTo(frame_left_first);
+            frame_right_prev.copyTo(frame_right_first);
             ball_in_flight = true;
         }
 
@@ -196,6 +198,14 @@ int main(int argc, char const *argv[]) {
             rectangle(frame_right_thresh, right_roi, Scalar(100,180,80));
             rectangle(frame_left_display, left_roi, Scalar(200,80,0));
             rectangle(frame_right_display, right_roi, Scalar(100,180,80));
+
+            absdiff(frame_left, frame_left_first, frame_left_first_diff);
+            absdiff(frame_right, frame_right_first, frame_right_first_diff);
+
+
+            // Show the abs difference between first and curr frames
+            imshow("Left Diff First-Curr", frame_left_first_diff);
+            imshow("Right Diff First-Curr", frame_right_first_diff);
         }
 
         // Show the image output for a sanity check
