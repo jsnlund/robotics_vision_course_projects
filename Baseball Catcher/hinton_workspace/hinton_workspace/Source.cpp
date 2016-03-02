@@ -10,6 +10,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <iomanip> // For leading zeros
+
 
 using namespace cv;
 using namespace std;
@@ -19,7 +21,6 @@ int main(int argc, char const *argv[]) {
     String const IMAGE_PREFIX_LEFT = "12ms6L";
     String const IMAGE_PREFIX_RIGHT = "12ms6R";
     String const IMAGE_FILE_SUFFIX = ".bmp";
-    String helper = "0";
 
     // Keyboard codes
     int const ESC_KEY = 27;
@@ -76,8 +77,8 @@ int main(int argc, char const *argv[]) {
     // Or maybe when width of ball is too great - i.e. when too close
     bool ball_in_flight = false;
 
-    String current_image_file_left;
-    String current_image_file_right;
+    stringstream current_image_file_left;
+    stringstream current_image_file_right;
 
     // A vector to hold an array of corner coordinates
     vector<Point2f> corners_left, corners_right;
@@ -87,47 +88,45 @@ int main(int argc, char const *argv[]) {
 
     // Load the first image
     int i = MIN_IMAGE_NUMBER;
-    current_image_file_left = FOLDER + IMAGE_PREFIX_LEFT + helper + to_string(MIN_IMAGE_NUMBER) + IMAGE_FILE_SUFFIX;
-    current_image_file_right = FOLDER + IMAGE_PREFIX_RIGHT + helper + to_string(MIN_IMAGE_NUMBER) + IMAGE_FILE_SUFFIX;
-    frame_left_first = imread(current_image_file_left, CV_LOAD_IMAGE_GRAYSCALE);
-    frame_right_first = imread(current_image_file_right, CV_LOAD_IMAGE_GRAYSCALE);
+    current_image_file_left << FOLDER << IMAGE_PREFIX_LEFT << setw(2) << setfill('0') << to_string(MIN_IMAGE_NUMBER) << IMAGE_FILE_SUFFIX;
+    current_image_file_right << FOLDER << IMAGE_PREFIX_RIGHT << setw(2) << setfill('0') << to_string(MIN_IMAGE_NUMBER) << IMAGE_FILE_SUFFIX;
+    frame_left_first = imread(current_image_file_left.str(), CV_LOAD_IMAGE_GRAYSCALE);
+    frame_right_first = imread(current_image_file_right.str(), CV_LOAD_IMAGE_GRAYSCALE);
 
     frame_left_first.copyTo(frame_left_prev);
     frame_right_first.copyTo(frame_right_prev);
 
     i++;
 
-    // for (int i = MIN_IMAGE_NUMBER; i <= MAX_IMAGE_NUMBER; ++i) {
     while (keypress != ESC_KEY) {
-        // Accommodate switch from 0x to xx
-        if(i < 10 && i >= 0){
-            helper = "0";
-        }
-        else {
-            helper = "";
-        }
+        // Reset string stream
+        // See http://stackoverflow.com/a/7623670/1416379
+        current_image_file_left.str("");
+        current_image_file_left.clear();
+        current_image_file_right.str("");
+        current_image_file_right.clear();
 
         // Calculate the full path to the image file
-        current_image_file_left = FOLDER + IMAGE_PREFIX_LEFT + helper + to_string(i) + IMAGE_FILE_SUFFIX;
-        current_image_file_right = FOLDER + IMAGE_PREFIX_RIGHT + helper + to_string(i) + IMAGE_FILE_SUFFIX;
+        current_image_file_left << FOLDER << IMAGE_PREFIX_LEFT << setw(2) << setfill('0') << to_string(i) << IMAGE_FILE_SUFFIX;
+        current_image_file_right << FOLDER << IMAGE_PREFIX_RIGHT << setw(2) << setfill('0') << to_string(i) << IMAGE_FILE_SUFFIX;
 
         // Load the image
-        frame_left = imread(current_image_file_left, CV_LOAD_IMAGE_GRAYSCALE);
-        frame_right = imread(current_image_file_right, CV_LOAD_IMAGE_GRAYSCALE);
+        frame_left = imread(current_image_file_left.str(), CV_LOAD_IMAGE_GRAYSCALE);
+        frame_right = imread(current_image_file_right.str(), CV_LOAD_IMAGE_GRAYSCALE);
 
         // Exit if no images were grabbed
         if( frame_left.empty() ) {
-            cout <<  "Could not open or find the left image" << std::endl ;
+            cout <<  "Could not open or find the left image" << std::endl;
             // Show the image file path
-            cout << "Left Image File: " << current_image_file_left << endl;
+            cout << "Left Image File: " << current_image_file_left.str() << endl;
             return -1;
         }
 
         // Exit if no images were grabbed
         if( frame_right.empty() ) {
-            cout <<  "Could not open or find the right image" << std::endl ;
+            cout <<  "Could not open or find the right image" << std::endl;
             // Show the image file path
-            cout << "Right Image File: " << current_image_file_left << endl;
+            cout << "Right Image File: " << current_image_file_left.str() << endl;
             return -1;
         }
 
