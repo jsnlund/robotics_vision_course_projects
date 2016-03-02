@@ -25,18 +25,21 @@ int main(int argc, char const *argv[]) {
     int const ESC_KEY = 27;
     int keypress = 0;
 
-    int const MIN_IMAGE_NUMBER = 0;
+    int const MIN_IMAGE_NUMBER = 1;
     int const MAX_IMAGE_NUMBER = 59;
 
-    Mat frame_left; // allocate an image buffer object
+    // allocate an image buffer objects
+    Mat frame_left;
     Mat frame_left_prev;
     Mat frame_left_diff;
     Mat frame_left_thresh;
+    Mat frame_left_first;
 
-    Mat frame_right; // allocate an image buffer object
+    Mat frame_right;
     Mat frame_right_prev;
     Mat frame_right_diff;
     Mat frame_right_thresh;
+    Mat frame_right_first;
 
     // ROI Offset Constants
     int const ROI_LEFT_X = 200;
@@ -48,8 +51,6 @@ int main(int argc, char const *argv[]) {
     int const ROI_RIGHT_Y = 0;
     int const ROI_RIGHT_WIDTH = 200;
     int const ROI_RIGHT_HEIGHT = 200;
-
-
 
 
     String current_image_file_left;
@@ -64,8 +65,12 @@ int main(int argc, char const *argv[]) {
     int i = MIN_IMAGE_NUMBER;
     current_image_file_left = FOLDER + IMAGE_PREFIX_LEFT + helper + to_string(MIN_IMAGE_NUMBER) + IMAGE_FILE_SUFFIX;
     current_image_file_right = FOLDER + IMAGE_PREFIX_RIGHT + helper + to_string(MIN_IMAGE_NUMBER) + IMAGE_FILE_SUFFIX;
-    frame_left_prev = imread(current_image_file_left, CV_LOAD_IMAGE_GRAYSCALE);
-    frame_right_prev = imread(current_image_file_right, CV_LOAD_IMAGE_GRAYSCALE);
+    frame_left_first = imread(current_image_file_left, CV_LOAD_IMAGE_GRAYSCALE);
+    frame_right_first = imread(current_image_file_right, CV_LOAD_IMAGE_GRAYSCALE);
+
+    frame_left_first.copyTo(frame_left_prev);
+    frame_right_first.copyTo(frame_right_prev);
+
     i++;
 
     // for (int i = MIN_IMAGE_NUMBER; i <= MAX_IMAGE_NUMBER; ++i) {
@@ -109,6 +114,9 @@ int main(int argc, char const *argv[]) {
         // Absolute difference
         absdiff(frame_left, frame_left_prev, frame_left_diff);
         absdiff(frame_right, frame_right_prev, frame_right_diff);
+
+        // Try out erode
+        // erode(InputArray src, OutputArray dst, InputArray kernel, Point anchor=Point(-1,-1), int iterations=1, int borderType=BORDER_CONSTANT, const Scalar& borderValue=morphologyDefaultBorderValue() )
 
         // Try other blurring factors and sizes
         // Sizes must be an odd number
