@@ -61,21 +61,12 @@ int main(int argc, char const *argv[]) {
     int const ROI_RIGHT_WIDTH_DEFAULT = ROI_LEFT_WIDTH_DEFAULT;
     int const ROI_RIGHT_HEIGHT_DEFAULT = ROI_LEFT_HEIGHT_DEFAULT;
 
-    // Dynamic ROI variables
-    // int roi_left_x = ROI_LEFT_X_DEFAULT;
-    // int roi_left_y = ROI_LEFT_Y_DEFAULT;
-    // int roi_left_width = ROI_LEFT_WIDTH_DEFAULT;
-    // int roi_left_height = ROI_LEFT_HEIGHT_DEFAULT;
-
-    // int roi_right_x = ROI_RIGHT_X_DEFAULT;
-    // int roi_right_y = ROI_RIGHT_Y_DEFAULT;
-    // int roi_right_width = ROI_RIGHT_WIDTH_DEFAULT;
-    // int roi_right_height = ROI_RIGHT_HEIGHT_DEFAULT;
-
     // Create Default ROI
     Rect LEFT_ROI_DEFAULT = Rect(ROI_LEFT_X_DEFAULT,ROI_LEFT_Y_DEFAULT,ROI_LEFT_WIDTH_DEFAULT,ROI_LEFT_HEIGHT_DEFAULT);
     Rect RIGHT_ROI_DEFAULT = Rect(ROI_RIGHT_X_DEFAULT,ROI_RIGHT_Y_DEFAULT,ROI_RIGHT_WIDTH_DEFAULT,ROI_RIGHT_HEIGHT_DEFAULT);
 
+    // Dynamic ROIs
+    // Fields: x, y, width, height
     Rect left_roi = LEFT_ROI_DEFAULT;
     Rect right_roi = RIGHT_ROI_DEFAULT;
 
@@ -211,19 +202,23 @@ int main(int argc, char const *argv[]) {
             imshow("Left Diff First-Curr", frame_left_first_diff);
             imshow("Right Diff First-Curr", frame_right_first_diff);
 
-            GaussianBlur(frame_left_first_diff, frame_left_first_diff_thresh, Size(7,7), 3.0, 3.0);
+            // GaussianBlur(frame_left_first_diff, frame_left_first_diff_thresh, Size(7,7), 3.0, 3.0);
             // GaussianBlur(frame_right_diff, frame_right_thresh, Size(7,7), 3.0, 3.0);
-            // GaussianBlur(frame_left_diff, frame_left_diff, Size(31,31), 15.0, 15.0);
+            GaussianBlur(frame_left_first_diff, frame_left_first_diff_thresh, Size(31,31), 15.0, 15.0);
             GaussianBlur(frame_right_first_diff, frame_right_first_diff_thresh, Size(31,31), 15.0, 15.0);
 
             threshold(frame_left_first_diff_thresh, frame_left_first_diff_thresh, 5, 256, THRESH_BINARY);
             threshold(frame_right_first_diff_thresh, frame_right_first_diff_thresh, 5, 256, THRESH_BINARY);
 
+            // // Canny
+            // Canny(frame_left_first_diff_thresh, frame_left_canny, 10, 200, 3);
+            // imshow("Left Canny", frame_left_canny);
+
+            // Find Contours
             contours_left.clear();
             contours_right.clear();
             hierarchy_left.clear();
             hierarchy_right.clear();
-            Canny(frame_left_first_diff_thresh, frame_left_canny, 10, 200, 3);
             // Find contours modifies the input image!! So pass in a copy
             // findContours(frame_left_first_diff_thresh.clone()(left_roi), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(left_roi.x, left_roi.y));
             // CV_RETR_TREE CV_RETR_EXTERNAL
@@ -232,7 +227,6 @@ int main(int argc, char const *argv[]) {
             findContours(frame_right_first_diff_thresh.clone(), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
             // cout << "Left Contours: " << contours_left.size() << endl;
 
-            imshow("Left Canny", frame_left_canny);
 
             cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
             cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
