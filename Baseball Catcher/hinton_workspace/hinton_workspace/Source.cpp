@@ -15,9 +15,9 @@ using namespace cv;
 using namespace std;
 
 int main(int argc, char const *argv[]) {
-    String const FOLDER = "shot_10\\";
-    String const IMAGE_PREFIX_LEFT = "L";
-    String const IMAGE_PREFIX_RIGHT = "R";
+    String const FOLDER = "12ms6\\";
+    String const IMAGE_PREFIX_LEFT = "12ms6L";
+    String const IMAGE_PREFIX_RIGHT = "12ms6R";
     String const IMAGE_FILE_SUFFIX = ".bmp";
     String helper = "0";
 
@@ -26,7 +26,7 @@ int main(int argc, char const *argv[]) {
     int keypress = 0;
 
     int const MIN_IMAGE_NUMBER = 0;
-    int const MAX_IMAGE_NUMBER = 127;
+    int const MAX_IMAGE_NUMBER = 59;
 
     Mat frame_left; // allocate an image buffer object
     Mat frame_left_prev;
@@ -113,8 +113,10 @@ int main(int argc, char const *argv[]) {
         // Try other blurring factors and sizes
         // Sizes must be an odd number
         // Try Size(31,31), 15, 15 to get rid of curtain movement
-        GaussianBlur(frame_left_diff, frame_left_thresh, Size(7,7), 3.0, 3.0);
-        GaussianBlur(frame_right_diff, frame_right_thresh, Size(7,7), 3.0, 3.0);
+        // GaussianBlur(frame_left_diff, frame_left_thresh, Size(7,7), 3.0, 3.0);
+        // GaussianBlur(frame_right_diff, frame_right_thresh, Size(7,7), 3.0, 3.0);
+        GaussianBlur(frame_left_diff, frame_left_thresh, Size(31,31), 15.0, 15.0);
+        GaussianBlur(frame_right_diff, frame_right_thresh, Size(31,31), 15.0, 15.0);
 
         threshold(frame_left_thresh, frame_left_thresh, 5, 256, THRESH_BINARY);
         threshold(frame_right_thresh, frame_right_thresh, 5, 256, THRESH_BINARY);
