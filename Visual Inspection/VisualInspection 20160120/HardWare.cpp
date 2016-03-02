@@ -123,11 +123,17 @@ long QSProcessThreadFunc(CTCSys *QS)
 			maskLeft.setTo(0);
 			maskRight.setTo(0);
 
-			//cvtColor(QS->IR.ProcBuf[0], QS->IR.OutBuf1[0], CV_BGR2GRAY);
-			
-			GaussianBlur(CurrentImage, CurrentImage, Size(BLURFACTOR, BLURFACTOR), 1.5, 1.5);
+			// GaussianBlur(CurrentImage, CurrentImage, Size(BLURFACTOR, BLURFACTOR), 1.5, 1.5);
 
-			threshold(CurrentImage, CurrentImage, 100, 255, THRESH_BINARY);
+			// TODO: Detect ugly hearts by finding chips
+			// Filter size should be 5. Sigma values should be equal, both between 10 < x < 150
+			// 20 seems to blur out the words, but keep some of the chips and irregularities
+			bilateralFilter(CurrentImage, QS->IR.OutBuf1[0], 5, 30,30);
+			// TODO: Depending on the lighting, the text and/or the chips will either show up or not
+
+			// TODO: Look into HSV for filtering, etc. How can this help?
+
+			// threshold(CurrentImage, CurrentImage, 100, 255, THRESH_BINARY);
    //         // Canny(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 10, 250, 3);
 			Canny(CurrentImage, CurrentImage, 10, 200, 3);
 			//// findContours(QS->IR.OutBuf1[0], contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
@@ -135,11 +141,6 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 			//threshold(QS->IR.OutBuf1[0], QS->IR.OutBuf1[0], 40, 255, THRESH_BINARY);
 
-			if (contours.size() != 0) {
-				vector<Moments> mu(contours.size());
-				for (int i = 0; i < contours.size(); i++) {
-					mu[i] = moments(contours[i], false);
-				}
 
 				vector<Point2f> mc(contours.size());
 				for (int i = 0; i < contours.size(); i++) {
@@ -158,7 +159,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 					//double rad = sqrt(cntArea / 3.1415);
 					//circle(QS->IR.OutBuf1[0], mc[0], int(rad), Scalar(255, 255, 255), -1);
-					if (cntArea > SIZE_LOWER && cntArea < SIZE_UPPER){ 
+					if (cntArea > SIZE_LOWER && cntArea < SIZE_UPPER){
 						if (area_diff > AREA_DIFF_THRESH){
 							pass = good;
 							//drawContours( QS->IR.OutBuf1[0], contours, -1, Scalar(255,255,255), 3, 8, hierarchy, 0, Point() );
@@ -169,17 +170,17 @@ long QSProcessThreadFunc(CTCSys *QS)
 						circle(QS->IR.OutBuf1[0], center, int(radius), Scalar(255, 255, 255), -1);
 						drawContours(QS->IR.OutBuf1[0], contours, -1, Scalar(100, 100, 100), 3, 8, hierarchy, 1, Point());
 					}
-					else{ 
+					else{
 						drawContours(QS->IR.OutBuf1[0], contours, -1, Scalar(100, 100, 100), 3, 8, hierarchy, 1, Point());
-						pass = bad; 
+						pass = bad;
 					}
 				}
-				else{ 
+				else{
 					pass = not_in_frame;
 				}
 			}
-			else{ 
-				pass = not_in_frame; 
+			else{
+				pass = not_in_frame;
 			}
 
 
