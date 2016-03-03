@@ -55,24 +55,24 @@ int main(int argc, char const *argv[]) {
     Mat frame_right_nxor;
 
     // ROI Initial Offset Constants
-    int const ROI_LEFT_X_DEFAULT = 320;
-    int const ROI_LEFT_Y_DEFAULT = 60;
-    int const ROI_LEFT_WIDTH_DEFAULT = 100;
-    int const ROI_LEFT_HEIGHT_DEFAULT = 100;
+    int const ROI_DEFAULT_X_LEFT = 320;
+    int const ROI_DEFAULT_Y_LEFT = 60;
+    int const ROI_DEFAULT_WIDTH_LEFT = 100;
+    int const ROI_DEFAULT_HEIGHT_LEFT = 100;
 
-    int const ROI_RIGHT_X_DEFAULT = 235;
-    int const ROI_RIGHT_Y_DEFAULT = 55;
-    int const ROI_RIGHT_WIDTH_DEFAULT = ROI_LEFT_WIDTH_DEFAULT;
-    int const ROI_RIGHT_HEIGHT_DEFAULT = ROI_LEFT_HEIGHT_DEFAULT;
+    int const ROI_DEFAULT_X_RIGHT = 235;
+    int const ROI_DEFAULT_Y_RIGHT = 55;
+    int const ROI_DEFAULT_WIDTH_RIGHT = ROI_DEFAULT_WIDTH_LEFT;
+    int const ROI_DEFAULT_HEIGHT_RIGHT = ROI_DEFAULT_HEIGHT_LEFT;
 
     // Create Default ROI
-    Rect LEFT_ROI_DEFAULT = Rect(ROI_LEFT_X_DEFAULT,ROI_LEFT_Y_DEFAULT,ROI_LEFT_WIDTH_DEFAULT,ROI_LEFT_HEIGHT_DEFAULT);
-    Rect RIGHT_ROI_DEFAULT = Rect(ROI_RIGHT_X_DEFAULT,ROI_RIGHT_Y_DEFAULT,ROI_RIGHT_WIDTH_DEFAULT,ROI_RIGHT_HEIGHT_DEFAULT);
+    Rect ROI_DEFAULT_LEFT = Rect(ROI_DEFAULT_X_LEFT,ROI_DEFAULT_Y_LEFT,ROI_DEFAULT_WIDTH_LEFT,ROI_DEFAULT_HEIGHT_LEFT);
+    Rect ROI_DEFAULT_RIGHT = Rect(ROI_DEFAULT_X_RIGHT,ROI_DEFAULT_Y_RIGHT,ROI_DEFAULT_WIDTH_RIGHT,ROI_DEFAULT_HEIGHT_RIGHT);
 
     // Dynamic ROIs
     // Fields: x, y, width, height
-    Rect left_roi = LEFT_ROI_DEFAULT;
-    Rect right_roi = RIGHT_ROI_DEFAULT;
+    Rect roi_left = ROI_DEFAULT_LEFT;
+    Rect roi_right = ROI_DEFAULT_RIGHT;
 
     // When activity is generated in the initial ROI, trigger ball_in_flight bool
     // Or maybe when width of ball is too great - i.e. when too close
@@ -167,8 +167,8 @@ int main(int argc, char const *argv[]) {
         // corner detection
         corners_left.clear();
         corners_right.clear();
-        goodFeaturesToTrack(frame_left_thresh(left_roi), corners_left, 10, 0.01, 10);
-        goodFeaturesToTrack(frame_right_thresh(right_roi), corners_right, 10, 0.01, 10);
+        goodFeaturesToTrack(frame_left_thresh(roi_left), corners_left, 10, 0.01, 10);
+        goodFeaturesToTrack(frame_right_thresh(roi_right), corners_right, 10, 0.01, 10);
         // cornerSubPix(frame_left_thresh, corners_left, Size(5,5), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001 ) );
         // cornerSubPix(frame_right_thresh, corners_right, Size(5,5), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001 ) );
 
@@ -211,13 +211,13 @@ int main(int argc, char const *argv[]) {
             hierarchy_left.clear();
             hierarchy_right.clear();
             // Find contours modifies the input image!! So pass in a copy
-            // findContours(frame_left_first_diff_thresh.clone()(left_roi), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(left_roi.x, left_roi.y));
+            // findContours(frame_left_first_diff_thresh.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
             // CV_RETR_TREE CV_RETR_EXTERNAL
             // CV_CHAIN_APPROX_NONE CV_CHAIN_APPROX_SIMPLE
             // findContours(frame_left_first_diff_thresh.clone(), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
             // findContours(frame_right_first_diff_thresh.clone(), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
-            findContours(frame_left_first_diff_thresh.clone()(left_roi), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(left_roi.x, left_roi.y));
-            findContours(frame_right_first_diff_thresh.clone()(right_roi), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(right_roi.x, right_roi.y));
+            findContours(frame_left_first_diff_thresh.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
+            findContours(frame_right_first_diff_thresh.clone()(roi_right), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_right.x, roi_right.y));
             // cout << "Left Contours: " << contours_left.size() << endl;
 
             cout << "contours_left count: " << contours_left.size() << endl;
@@ -259,22 +259,26 @@ int main(int argc, char const *argv[]) {
                 drawContours(frame_left_first_diff_thresh, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
                 // Draw the centroid of the ball
                 circle(frame_left_first_diff_thresh, ball_centroid_left, 5, Scalar(200,80,0), 1);
+                // TODO: recalculate the roi
+                // if(){}
             }
             if(contours_right.size() > 0){
                 // cout << "drawContours!" << endl;
                 drawContours(frame_right_first_diff_thresh, contours_right, -1, Scalar(255,0,0), 3, 8, hierarchy_right, 2, Point() );
                 // Draw the centroid of the ball
                 circle(frame_right_first_diff_thresh, ball_centroid_right, 5, Scalar(200,80,0), 1);
+                // TODO: recalculate the roi
+                // if(){}
             }
 
             imshow("Left Thresh First-Curr", frame_left_first_diff_thresh);
             imshow("Right Thresh First-Curr", frame_right_first_diff_thresh);
 
             // Draw RoI as a rectangle, only when ball is in motion
-            rectangle(frame_left_thresh, left_roi, Scalar(200,80,0));
-            rectangle(frame_right_thresh, right_roi, Scalar(100,180,80));
-            rectangle(frame_left_display, left_roi, Scalar(200,80,0));
-            rectangle(frame_right_display, right_roi, Scalar(100,180,80));
+            rectangle(frame_left_thresh, roi_left, Scalar(200,80,0));
+            rectangle(frame_right_thresh, roi_right, Scalar(100,180,80));
+            rectangle(frame_left_display, roi_left, Scalar(200,80,0));
+            rectangle(frame_right_display, roi_right, Scalar(100,180,80));
         }
 
         //
@@ -285,10 +289,10 @@ int main(int argc, char const *argv[]) {
         cvtColor(frame_right_thresh, frame_right_thresh, COLOR_GRAY2BGR);
         // Draw detected corners
         for (int i = 0; i < corners_left.size(); ++i){
-            circle(frame_left_thresh, Point(ROI_LEFT_X_DEFAULT+corners_left[i].x,ROI_LEFT_Y_DEFAULT+corners_left[i].y), 20, Scalar(200,80,0), 1);
+            circle(frame_left_thresh, Point(ROI_DEFAULT_LEFT.x+corners_left[i].x,ROI_DEFAULT_LEFT.y+corners_left[i].y), 20, Scalar(200,80,0), 1);
         }
         for (int i = 0; i < corners_right.size(); ++i){
-            circle(frame_right_thresh, Point(ROI_RIGHT_X_DEFAULT+corners_right[i].x,ROI_RIGHT_Y_DEFAULT+corners_right[i].y), 20, Scalar(100,180,80), 1);
+            circle(frame_right_thresh, Point(ROI_DEFAULT_RIGHT.x+corners_right[i].x,ROI_DEFAULT_RIGHT.y+corners_right[i].y), 20, Scalar(100,180,80), 1);
         }
 
 
@@ -314,9 +318,9 @@ int main(int argc, char const *argv[]) {
         if(i > MAX_IMAGE_NUMBER) {
             i = MIN_IMAGE_NUMBER;
             // TODO: When ball gets too close, set ball_in_flight to false so ROI can be reset to the default
-            // Reset
-            left_roi = LEFT_ROI_DEFAULT;
-            right_roi = RIGHT_ROI_DEFAULT;
+            // Reset roi
+            roi_left = ROI_DEFAULT_LEFT;
+            roi_right = ROI_DEFAULT_RIGHT;
             ball_in_flight = false;
         }
     }
