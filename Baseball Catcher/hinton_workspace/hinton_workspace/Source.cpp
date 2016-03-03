@@ -97,6 +97,52 @@ int main(int argc, char const *argv[]) {
     Moments ball_m_left, ball_m_right;
     Point2i ball_centroid_left, ball_centroid_right;
 
+
+
+    //
+    //// Load in parameters from file
+    //// Read in intrinsic and distortion parameters from task 1
+    //
+
+    // // Initialize a 3x3 intrinsic matrix
+    // Mat camera_matrix_left, camera_matrix_right;
+    // // Initialize 5x1 coefficient matrix
+    // Mat dist_coeffs_left, dist_coeffs_right;
+    // // Read yaml files using FileStorage
+    // FileStorage fs_left("baseball_left_parameters.yaml", FileStorage::READ);
+    // FileStorage fs_right("baseball_right_parameters.yaml", FileStorage::READ);
+    // fs_left["distortion"] >> dist_coeffs_left;
+    // fs_left["intrinsic"] >> camera_matrix_left;
+    // fs_right["distortion"] >> dist_coeffs_right;
+    // fs_right["intrinsic"] >> camera_matrix_right;
+
+    // // Read in the fundamental matrix from task 2
+    // Mat fundamental_matrix, essential_matrix;
+    // Mat rmat, tvec;
+
+    // FileStorage stereo_params("baseball_stereo_parameters.yaml", FileStorage::READ);
+    // stereo_params["fundamental"] >> fundamental_matrix;
+    // stereo_params["rotation"] >> rmat;
+    // stereo_params["translation"] >> tvec;
+    // // stereo_params["essential"] >> essential_matrix;
+
+    // // Read in the stereo rectify parameters R and P for left and right
+    // Mat rmat_left, rmat_right, pmat_left, pmat_right, Q;
+    // FileStorage stereo_rectify_params("baseball_stereo_rectify_params.yaml", FileStorage::READ);
+    // stereo_rectify_params["rmat_left"] >> rmat_left;
+    // stereo_rectify_params["rmat_right"] >> rmat_right;
+    // stereo_rectify_params["pmat_left"] >> pmat_left;
+    // stereo_rectify_params["pmat_right"] >> pmat_right;
+    // stereo_rectify_params["Q"] >> Q;
+
+
+
+
+
+
+
+
+
     // Load the first image
     int i = MIN_IMAGE_NUMBER;
     current_image_file_left << FOLDER << IMAGE_PREFIX_LEFT << setw(2) << setfill('0') << to_string(MIN_IMAGE_NUMBER) << IMAGE_FILE_SUFFIX;
@@ -193,8 +239,8 @@ int main(int argc, char const *argv[]) {
             absdiff(frame_right, frame_right_first, frame_right_first_diff);
 
             // Show the abs difference between first and curr frames
-            imshow("Left Diff First-Curr", frame_left_first_diff);
-            imshow("Right Diff First-Curr", frame_right_first_diff);
+            imshow("Left Diff", frame_left_first_diff);
+            imshow("Right Diff", frame_right_first_diff);
 
             // GaussianBlur(frame_left_first_diff, frame_left_first_diff_thresh, Size(7,7), 3.0, 3.0);
             // GaussianBlur(frame_right_diff, frame_right_thresh, Size(7,7), 3.0, 3.0);
@@ -245,11 +291,8 @@ int main(int argc, char const *argv[]) {
                 cout << "right centroid: " << ball_centroid_right << endl;
             }
 
-
-
-            bitwise_and(frame_left_first_diff_thresh, frame_left_thresh, frame_left_and);
-
-            imshow("Left AND", frame_left_and);
+            // bitwise_and(frame_left_first_diff_thresh, frame_left_thresh, frame_left_and);
+            // imshow("Left AND", frame_left_and);
 
             //
             //// Draw
@@ -257,67 +300,74 @@ int main(int argc, char const *argv[]) {
 
             cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
             cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
-            if(contours_left.size() > 0){
+            if(contours_left.size() > 0 && contours_right.size() > 0){
                 // cout << "drawContours!" << endl;
                 drawContours(frame_left_first_diff_thresh, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
                 // Draw the centroid of the ball
                 circle(frame_left_first_diff_thresh, ball_centroid_left, 5, Scalar(200,80,0), 1);
                 // TODO: recalculate the roi
-                int x_margin = roi_left.width/2;
-                int y_margin = roi_left.height/2;
+                int x_margin_left = roi_left.width/2;
+                int y_margin_left = roi_left.height/2;
                 // Ball is moving to the left
-                while(ball_centroid_left.x - roi_left.x < x_margin && roi_left.x > 0){
+                while(ball_centroid_left.x - roi_left.x < x_margin_left && roi_left.x > 0){
                     roi_left.x--;
                 }
                 // Ball is moving to the right
-                while(ball_centroid_left.x - roi_left.x > x_margin && roi_left.x < IMAGE_WIDTH-1){
+                while(ball_centroid_left.x - roi_left.x > x_margin_left && roi_left.x < IMAGE_WIDTH-1){
                     roi_left.x++;
                 }
                 // Ball is moving up
-                while(ball_centroid_left.y - roi_left.y < y_margin && roi_left.y > 0){
+                while(ball_centroid_left.y - roi_left.y < y_margin_left && roi_left.y > 0){
                     roi_left.y--;
                 }
                 // Ball is moving down
-                while(ball_centroid_left.y - roi_left.y > y_margin && roi_left.y < IMAGE_HEIGHT-1){
+                while(ball_centroid_left.y - roi_left.y > y_margin_left && roi_left.y < IMAGE_HEIGHT-1){
                     roi_left.y++;
                 }
 
-            }
-            if(contours_right.size() > 0){
                 // cout << "drawContours!" << endl;
                 drawContours(frame_right_first_diff_thresh, contours_right, -1, Scalar(100,180,80), 3, 8, hierarchy_right, 2, Point() );
                 // Draw the centroid of the ball
                 circle(frame_right_first_diff_thresh, ball_centroid_right, 5, Scalar(200,80,0), 1);
                 // TODO: recalculate the roi
-                int x_margin = roi_right.width/2;
-                int y_margin = roi_right.height/2;
+                int x_margin_right = roi_right.width/2;
+                int y_margin_right = roi_right.height/2;
                 // Ball is moving to the left
-                while(ball_centroid_right.x - roi_right.x < x_margin && roi_right.x > 0){
+                while(ball_centroid_right.x - roi_right.x < x_margin_right && roi_right.x > 0){
                     roi_right.x--;
                 }
                 // Ball is moving to the right
-                while(ball_centroid_right.x - roi_right.x > x_margin && roi_right.x < IMAGE_WIDTH-1){
+                while(ball_centroid_right.x - roi_right.x > x_margin_right && roi_right.x < IMAGE_WIDTH-1){
                     roi_right.x++;
                 }
                 // Ball is moving up
-                while(ball_centroid_right.y - roi_right.y < y_margin && roi_right.y > 0){
+                while(ball_centroid_right.y - roi_right.y < y_margin_right && roi_right.y > 0){
                     roi_right.y--;
                 }
                 // Ball is moving down
-                while(ball_centroid_right.y - roi_right.y > y_margin && roi_right.y < IMAGE_HEIGHT-1){
+                while(ball_centroid_right.y - roi_right.y > y_margin_right && roi_right.y < IMAGE_HEIGHT-1){
                     roi_right.y++;
                 }
 
             }
 
-            imshow("Left Thresh First-Curr", frame_left_first_diff_thresh);
-            imshow("Right Thresh First-Curr", frame_right_first_diff_thresh);
+            imshow("Left Thresh", frame_left_first_diff_thresh);
+            imshow("Right Thresh", frame_right_first_diff_thresh);
 
             // Draw RoI as a rectangle, only when ball is in motion
             rectangle(frame_left_thresh, roi_left, Scalar(0,0,255));
             rectangle(frame_right_thresh, roi_right, Scalar(100,180,80));
             rectangle(frame_left_display, roi_left, Scalar(0,0,255));
             rectangle(frame_right_display, roi_right, Scalar(100,180,80));
+
+
+            // Print the coordinates of the centroid of the ball
+            stringstream coordinates_left;
+            coordinates_left << "(" << to_string((int)ball_centroid_left.x) << ", " << to_string((int)ball_centroid_left.y) << /*", " << to_string((int)ball_centroid_left.z) <<*/ ")";
+            stringstream coordinates_right;
+            coordinates_right << "(" << to_string((int)ball_centroid_right.x) << ", " << to_string((int)ball_centroid_right.y) << /*", " << to_string((int)ball_centroid_right.z) <<*/ ")";
+            putText(frame_left_display, coordinates_left.str(), Point2f(10, 50), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0,165,255), 2);
+            putText(frame_right_display, coordinates_right.str(), Point2f(10, 50), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0,200,0), 2);
         }
 
         //
@@ -335,15 +385,20 @@ int main(int argc, char const *argv[]) {
         }
 
 
+
+
+
+
+
         // Show the image output for a sanity check
         imshow("Left", frame_left_display);
         imshow("Right", frame_right_display);
 
-        imshow("Left Diff", frame_left_diff);
-        imshow("Right Diff", frame_right_diff);
+        // imshow("Left Diff", frame_left_diff);
+        // imshow("Right Diff", frame_right_diff);
 
-        imshow("Left Threshold", frame_left_thresh);
-        imshow("Right Threshold", frame_right_thresh);
+        // imshow("Left Threshold", frame_left_thresh);
+        // imshow("Right Threshold", frame_right_thresh);
 
 
         // Need this for images to display, or else output windows just show up gray
