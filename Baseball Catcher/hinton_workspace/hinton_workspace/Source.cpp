@@ -30,25 +30,29 @@ int main(int argc, char const *argv[]) {
     int const MAX_IMAGE_NUMBER = 59;
 
     // allocate an image buffer objects
-    Mat frame_left;
-    Mat frame_left_display;
-    Mat frame_left_prev;
-    Mat frame_left_diff;
-    Mat frame_left_thresh;
+    Mat frame_left; // The current frame
+    Mat frame_left_display; // The current frame with color and drawings
+    Mat frame_left_prev;  // The previous frame
+    Mat frame_left_diff; // Diff between current and prev
+    Mat frame_left_thresh; // Threshold between diff
     Mat frame_left_canny;
-    Mat frame_left_first;
-    Mat frame_left_first_diff;
+    Mat frame_left_first; // The image before the first detected ball movement
+    Mat frame_left_first_diff; // Diff between current and first
     Mat frame_left_first_diff_thresh;
+    Mat frame_left_and;
+    Mat frame_left_nxor;
 
-    Mat frame_right;
-    Mat frame_right_display;
-    Mat frame_right_prev;
-    Mat frame_right_diff;
-    Mat frame_right_thresh;
+    Mat frame_right; // The current frame
+    Mat frame_right_display; // The current frame with color and drawings
+    Mat frame_right_prev; // The previous frame
+    Mat frame_right_diff; // Diff between current and prev
+    Mat frame_right_thresh; // Threshold between diff
     Mat frame_right_canny;
-    Mat frame_right_first;
-    Mat frame_right_first_diff;
+    Mat frame_right_first; // The image before the first detected ball movement
+    Mat frame_right_first_diff; // Diff between current and first
     Mat frame_right_first_diff_thresh;
+    Mat frame_right_and;
+    Mat frame_right_nxor;
 
     // ROI Initial Offset Constants
     int const ROI_LEFT_X_DEFAULT = 320;
@@ -148,13 +152,13 @@ int main(int argc, char const *argv[]) {
         // Sizes must be an odd number
         // Try Size(31,31), 15, 15 to get rid of curtain movement
         GaussianBlur(frame_left_diff, frame_left_diff, Size(7,7), 3.0, 3.0);
-        // GaussianBlur(frame_right_diff, frame_right_thresh, Size(7,7), 3.0, 3.0);
+        // GaussianBlur(frame_right_diff, frame_right_diff, Size(7,7), 3.0, 3.0);
         // GaussianBlur(frame_left_diff, frame_left_diff, Size(31,31), 15.0, 15.0);
-        GaussianBlur(frame_right_diff, frame_right_thresh, Size(31,31), 15.0, 15.0);
+        GaussianBlur(frame_right_diff, frame_right_diff, Size(31,31), 15.0, 15.0);
 
 
         threshold(frame_left_diff, frame_left_thresh, 5, 256, THRESH_BINARY);
-        threshold(frame_right_thresh, frame_right_thresh, 5, 256, THRESH_BINARY);
+        threshold(frame_right_diff, frame_right_thresh, 5, 256, THRESH_BINARY);
         // adaptiveThreshold(frame_right_diff, frame_right_thresh, 5, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0.0);
 
 
@@ -166,23 +170,10 @@ int main(int argc, char const *argv[]) {
         // cornerSubPix(frame_left_thresh, corners_left, Size(5,5), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001 ) );
         // cornerSubPix(frame_right_thresh, corners_right, Size(5,5), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001 ) );
 
-        cvtColor(frame_left_thresh, frame_left_thresh, COLOR_GRAY2BGR);
-        cvtColor(frame_right_thresh, frame_right_thresh, COLOR_GRAY2BGR);
-
-
-        // Draw detected corners
-        for (int i = 0; i < corners_left.size(); ++i){
-            circle(frame_left_thresh, Point(ROI_LEFT_X_DEFAULT+corners_left[i].x,ROI_LEFT_Y_DEFAULT+corners_left[i].y), 20, Scalar(200,80,0), 1);
-        }
-        for (int i = 0; i < corners_right.size(); ++i){
-            circle(frame_right_thresh, Point(ROI_RIGHT_X_DEFAULT+corners_right[i].x,ROI_RIGHT_Y_DEFAULT+corners_right[i].y), 20, Scalar(100,180,80), 1);
-        }
-
-
         // Let the corners trigger the ball in flight bool once
         if(ball_in_flight == false && (corners_left.size() > 0 && corners_left.size() > 0)){
-            cout << "L corners:" << corners_left.size() << endl;
-            cout << "R corners:" << corners_right.size() << endl << endl;
+            // cout << "L corners:" << corners_left.size() << endl;
+            // cout << "R corners:" << corners_right.size() << endl << endl;
             // Because we found corners, set the previous image as the first image
             frame_left_prev.copyTo(frame_left_first);
             frame_right_prev.copyTo(frame_right_first);
@@ -191,8 +182,6 @@ int main(int argc, char const *argv[]) {
 
         cvtColor(frame_left, frame_left_display, COLOR_GRAY2BGR);
         cvtColor(frame_right, frame_right_display, COLOR_GRAY2BGR);
-
-
 
         if(ball_in_flight) {
             absdiff(frame_left, frame_left_first, frame_left_first_diff);
@@ -228,6 +217,14 @@ int main(int argc, char const *argv[]) {
             // cout << "Left Contours: " << contours_left.size() << endl;
 
 
+            bitwise_and(frame_left_first_diff_thresh, frame_left_thresh, frame_left_and);
+
+            imshow("Left AND", frame_left_and);
+
+            //
+            //// Draw
+            //
+
             cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
             cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
             if(contours_left.size()){
@@ -249,6 +246,21 @@ int main(int argc, char const *argv[]) {
             rectangle(frame_right_display, right_roi, Scalar(100,180,80));
         }
 
+        //
+        //// Draw
+        //
+
+        cvtColor(frame_left_thresh, frame_left_thresh, COLOR_GRAY2BGR);
+        cvtColor(frame_right_thresh, frame_right_thresh, COLOR_GRAY2BGR);
+        // Draw detected corners
+        for (int i = 0; i < corners_left.size(); ++i){
+            circle(frame_left_thresh, Point(ROI_LEFT_X_DEFAULT+corners_left[i].x,ROI_LEFT_Y_DEFAULT+corners_left[i].y), 20, Scalar(200,80,0), 1);
+        }
+        for (int i = 0; i < corners_right.size(); ++i){
+            circle(frame_right_thresh, Point(ROI_RIGHT_X_DEFAULT+corners_right[i].x,ROI_RIGHT_Y_DEFAULT+corners_right[i].y), 20, Scalar(100,180,80), 1);
+        }
+
+
         // Show the image output for a sanity check
         imshow("Left", frame_left_display);
         imshow("Right", frame_right_display);
@@ -261,7 +273,7 @@ int main(int argc, char const *argv[]) {
 
 
         // Need this for images to display, or else output windows just show up gray
-        keypress = waitKey(30);
+        keypress = waitKey(300);
 
         // Update prev frames with current frames
         frame_left.copyTo(frame_left_prev);
