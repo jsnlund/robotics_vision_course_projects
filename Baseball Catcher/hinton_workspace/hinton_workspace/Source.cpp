@@ -22,6 +22,9 @@ int main(int argc, char const *argv[]) {
     String const IMAGE_PREFIX_RIGHT = "12ms6R";
     String const IMAGE_FILE_SUFFIX = ".bmp";
 
+    int const IMAGE_WIDTH = 640;
+    int const IMAGE_HEIGHT = 480;
+
     // Keyboard codes
     int const ESC_KEY = 27;
     int keypress = 0;
@@ -260,24 +263,60 @@ int main(int argc, char const *argv[]) {
                 // Draw the centroid of the ball
                 circle(frame_left_first_diff_thresh, ball_centroid_left, 5, Scalar(200,80,0), 1);
                 // TODO: recalculate the roi
-                // if(){}
+                int x_margin = roi_left.width/2;
+                int y_margin = roi_left.height/2;
+                // Ball is moving to the left
+                while(ball_centroid_left.x - roi_left.x < x_margin && roi_left.x > 0){
+                    roi_left.x--;
+                }
+                // Ball is moving to the right
+                while(ball_centroid_left.x - roi_left.x > x_margin && roi_left.x < IMAGE_WIDTH-1){
+                    roi_left.x++;
+                }
+                // Ball is moving up
+                while(ball_centroid_left.y - roi_left.y < y_margin && roi_left.y > 0){
+                    roi_left.y--;
+                }
+                // Ball is moving down
+                while(ball_centroid_left.y - roi_left.y > y_margin && roi_left.y < IMAGE_HEIGHT-1){
+                    roi_left.y++;
+                }
+
             }
             if(contours_right.size() > 0){
                 // cout << "drawContours!" << endl;
-                drawContours(frame_right_first_diff_thresh, contours_right, -1, Scalar(255,0,0), 3, 8, hierarchy_right, 2, Point() );
+                drawContours(frame_right_first_diff_thresh, contours_right, -1, Scalar(100,180,80), 3, 8, hierarchy_right, 2, Point() );
                 // Draw the centroid of the ball
                 circle(frame_right_first_diff_thresh, ball_centroid_right, 5, Scalar(200,80,0), 1);
                 // TODO: recalculate the roi
-                // if(){}
+                int x_margin = roi_right.width/2;
+                int y_margin = roi_right.height/2;
+                // Ball is moving to the left
+                while(ball_centroid_right.x - roi_right.x < x_margin && roi_right.x > 0){
+                    roi_right.x--;
+                }
+                // Ball is moving to the right
+                while(ball_centroid_right.x - roi_right.x > x_margin && roi_right.x < IMAGE_WIDTH-1){
+                    roi_right.x++;
+                }
+                // Ball is moving up
+                while(ball_centroid_right.y - roi_right.y < y_margin && roi_right.y > 0){
+                    roi_right.y--;
+                }
+                // Ball is moving down
+                while(ball_centroid_right.y - roi_right.y > y_margin && roi_right.y < IMAGE_HEIGHT-1){
+                    roi_right.y++;
+                }
+
             }
 
             imshow("Left Thresh First-Curr", frame_left_first_diff_thresh);
             imshow("Right Thresh First-Curr", frame_right_first_diff_thresh);
 
             // Draw RoI as a rectangle, only when ball is in motion
-            rectangle(frame_left_thresh, roi_left, Scalar(200,80,0));
+            rectangle(frame_left_thresh, roi_left, Scalar(0,0,255));
             rectangle(frame_right_thresh, roi_right, Scalar(100,180,80));
-            rectangle(frame_left_display, roi_left, Scalar(200,80,0));
+            rectangle(frame_left_display, roi_left, Scalar(0,0,255));
             rectangle(frame_right_display, roi_right, Scalar(100,180,80));
         }
 
