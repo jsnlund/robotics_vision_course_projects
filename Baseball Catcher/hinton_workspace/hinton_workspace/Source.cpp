@@ -89,8 +89,10 @@ int main(int argc, char const *argv[]) {
 
     // For find contours
     vector<vector<Point>> contours_left, contours_right;
+    vector<Point> ball_contour_left, ball_contour_right;
     vector<Vec4i> hierarchy_left, hierarchy_right;
-
+    Moments ball_m_left, ball_m_right;
+    Point2i ball_centroid_left, ball_centroid_right;
 
     // Load the first image
     int i = MIN_IMAGE_NUMBER;
@@ -212,9 +214,34 @@ int main(int argc, char const *argv[]) {
             // findContours(frame_left_first_diff_thresh.clone()(left_roi), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(left_roi.x, left_roi.y));
             // CV_RETR_TREE CV_RETR_EXTERNAL
             // CV_CHAIN_APPROX_NONE CV_CHAIN_APPROX_SIMPLE
-            findContours(frame_left_first_diff_thresh.clone(), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
-            findContours(frame_right_first_diff_thresh.clone(), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
+            // findContours(frame_left_first_diff_thresh.clone(), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
+            // findContours(frame_right_first_diff_thresh.clone(), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
+            findContours(frame_left_first_diff_thresh.clone()(left_roi), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(left_roi.x, left_roi.y));
+            findContours(frame_right_first_diff_thresh.clone()(right_roi), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(right_roi.x, right_roi.y));
             // cout << "Left Contours: " << contours_left.size() << endl;
+
+            cout << "contours_left count: " << contours_left.size() << endl;
+            cout << "contours_right count: " << contours_right.size() << endl;
+
+            // Find the centroid of the ball from the moments
+            // See https://en.wikipedia.org/wiki/Image_moment#Central_moments
+            // See also http://docs.opencv.org/3.1.0/dd/d49/tutorial_py_contour_features.html#gsc.tab=0
+            // center x = m10 / m00; center y = m01 / m00
+            if(contours_left.size() > 0){
+                // cout << "contours_left[0]: " << contours_left[0] << endl;
+                ball_contour_left = contours_left[0];
+                ball_m_left = moments(ball_contour_left);
+                ball_centroid_left = Point2i(int(ball_m_left.m10 / ball_m_left.m00), int(ball_m_left.m01 / ball_m_left.m00));
+                cout << "left centroid: " << ball_centroid_left << endl;
+            }
+            if(contours_right.size() > 0) {
+                // cout << "contours_right[0]: " << contours_right[0] << endl;
+                ball_contour_right = contours_right[0];
+                ball_m_right = moments(ball_contour_right);
+                ball_centroid_right = Point2i(int(ball_m_right.m10 / ball_m_right.m00), int(ball_m_right.m01 / ball_m_right.m00));
+                cout << "right centroid: " << ball_centroid_right << endl;
+            }
+
 
 
             bitwise_and(frame_left_first_diff_thresh, frame_left_thresh, frame_left_and);
@@ -227,13 +254,17 @@ int main(int argc, char const *argv[]) {
 
             cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
             cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
-            if(contours_left.size()){
+            if(contours_left.size() > 0){
                 // cout << "drawContours!" << endl;
                 drawContours(frame_left_first_diff_thresh, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
+                // Draw the centroid of the ball
+                circle(frame_left_first_diff_thresh, ball_centroid_left, 5, Scalar(200,80,0), 1);
             }
-            if(contours_right.size()){
+            if(contours_right.size() > 0){
                 // cout << "drawContours!" << endl;
                 drawContours(frame_right_first_diff_thresh, contours_right, -1, Scalar(255,0,0), 3, 8, hierarchy_right, 2, Point() );
+                // Draw the centroid of the ball
+                circle(frame_right_first_diff_thresh, ball_centroid_right, 5, Scalar(200,80,0), 1);
             }
 
             imshow("Left Thresh First-Curr", frame_left_first_diff_thresh);
@@ -273,7 +304,7 @@ int main(int argc, char const *argv[]) {
 
 
         // Need this for images to display, or else output windows just show up gray
-        keypress = waitKey(300);
+        keypress = waitKey(30);
 
         // Update prev frames with current frames
         frame_left.copyTo(frame_left_prev);
