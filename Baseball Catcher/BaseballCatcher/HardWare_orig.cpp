@@ -84,79 +84,9 @@ long QSProcessThreadFunc(CTCSys *QS)
 	int     BufID = 0;
 	char    str[32];
     long	FrameStamp;
+    
     FrameStamp = 0;
-
-	//
-	//// Team 10 Code
-	//
-
-	int const IMAGE_WIDTH = 640;
-	int const IMAGE_HEIGHT = 480;
-
-	// allocate an image buffer objects
-	//Mat frame_left; // The current frame
-	//Mat frame_left_display; // The current frame with color and drawings
-	Mat frame_left_prev;  // The previous frame
-	Mat frame_left; // Diff between current and prev
-	//Mat frame_left_thresh; // Threshold between diff
-	//Mat frame_left_first; // The image before the first detected ball movement
-	//Mat frame_left_first_diff; // Diff between current and first
-	//Mat frame_left_first_diff_thresh;
-	//Mat frame_left_and;
-
-	//Mat frame_right; // The current frame
-	//Mat frame_right_display; // The current frame with color and drawings
-	Mat frame_right_prev; // The previous frame
-	Mat frame_right; // Diff between current and prev
-	//Mat frame_right_thresh; // Threshold between diff
-	//Mat frame_right_first; // The image before the first detected ball movement
-	//Mat frame_right_first_diff; // Diff between current and first
-	//Mat frame_right_first_diff_thresh;
-	//Mat frame_right_and;
-
-	// ROI Initial Offset Constants
-	int const ROI_DEFAULT_X_LEFT = 320;
-	int const ROI_DEFAULT_Y_LEFT = 60;
-	int const ROI_DEFAULT_WIDTH_LEFT = 100;
-	int const ROI_DEFAULT_HEIGHT_LEFT = 100;
-
-	int const ROI_DEFAULT_X_RIGHT = 235;
-	int const ROI_DEFAULT_Y_RIGHT = 55;
-	int const ROI_DEFAULT_WIDTH_RIGHT = ROI_DEFAULT_WIDTH_LEFT;
-	int const ROI_DEFAULT_HEIGHT_RIGHT = ROI_DEFAULT_HEIGHT_LEFT;
-
-	// Create Default ROI
-	Rect ROI_DEFAULT_LEFT = Rect(ROI_DEFAULT_X_LEFT, ROI_DEFAULT_Y_LEFT, ROI_DEFAULT_WIDTH_LEFT, ROI_DEFAULT_HEIGHT_LEFT);
-	Rect ROI_DEFAULT_RIGHT = Rect(ROI_DEFAULT_X_RIGHT, ROI_DEFAULT_Y_RIGHT, ROI_DEFAULT_WIDTH_RIGHT, ROI_DEFAULT_HEIGHT_RIGHT);
-
-	// Dynamic ROIs
-	// Fields: x, y, width, height
-	Rect roi_left = ROI_DEFAULT_LEFT;
-	Rect roi_right = ROI_DEFAULT_RIGHT;
-
-	// When activity is generated in the initial ROI, trigger ball_in_flight bool
-	// Or maybe when width of ball is too great - i.e. when too close
-	bool ball_in_flight = false;
-
-	// A vector to hold an array of corner coordinates
-	vector<Point2f> corners_left, corners_right;
-
-	// TODO: Erosion kernel - create one, or use default via Mat()?
-	// Mat erosionKernel = getStructuringElement(int shape, Size ksize, Point anchor=Point(-1,-1))
-
-	// For find contours
-	vector<vector<Point>> contours_left, contours_right;
-	vector<Point> ball_contour_left, ball_contour_right;
-	vector<Vec4i> hierarchy_left, hierarchy_right;
-	Moments ball_m_left, ball_m_right;
-	Point2i ball_centroid_left, ball_centroid_right;
-
-	// TODO: Load camera params from files
-
-
 	while (QS->EventEndProcess == FALSE) {
-
-
 #ifdef PTGREY		// Image Acquisition
 		if (QS->IR.Acquisition == TRUE) {
 			for(i=0; i < QS->IR.NumCameras; i++) {
@@ -192,40 +122,15 @@ long QSProcessThreadFunc(CTCSys *QS)
 			// Images are acquired into ProcBuf[0] for left and ProcBuf[1] for right camera
 			// Need to create child image or small region of interest for processing to exclude background and speed up processing
 			// Mat child = QS->IR.ProcBuf[i](Rect(x, y, width, height));
-
-			QS->IR.ProcBuf[0].copyTo(frame_left);
-			QS->IR.ProcBuf[1].copyTo(frame_right);
-
-			absdiff(QS->IR.ProcBuf[0](roi_left), frame_left_prev(roi_left), frame_left(roi_left));
-			absdiff(QS->IR.ProcBuf[1](roi_right), frame_right_prev(roi_right), frame_right(roi_right));
-
-
-			GaussianBlur(frame_left, frame_left, Size(11, 11), 15.0, 15.0);
-			GaussianBlur(frame_right, frame_right, Size(11, 11), 15.0, 15.0);
-
-
-			threshold(frame_left(roi_left), frame_left(roi_left), 10, 256, THRESH_BINARY);
-			threshold(frame_right(roi_right), frame_right(roi_right), 10, 256, THRESH_BINARY);
-
-			frame_left.copyTo(QS->IR.OutBuf1[0]);
-			frame_right.copyTo(QS->IR.OutBuf1[1]);
-
-
-			// adaptiveThreshold(frame_right_diff, frame_right_thresh, 5, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0.0);
-
-			//findContours(frame_left_first_diff_thresh.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
-			//findContours(frame_right_first_diff_thresh.clone()(roi_right), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_right.x, roi_right.y));
-
-
-
-
-
-
-
-
-
-
-
+			for(i=0; i < QS->IR.NumCameras; i++) {
+#ifdef PTG_COLOR
+				cvtColor(QS->IR.ProcBuf[i][BufID], QS->IR.OutBuf1[i], CV_RGB2GRAY, 0);
+#else			// Example using Canny.  Input is ProcBuf.  Output is OutBuf1
+				Canny(QS->IR.ProcBuf[i], QS->IR.OutBuf1[i], 70, 100);
+#endif
+				// remove the Canny function above and add your ball detection and trajectory estimation code here
+				// calculate your estimated ball x, y location in inches and assigned them to moveX, and moveY below
+			}
 			// This is how you move the catcher.  QS->moveX and QS->moveY (both in inches) must be calculated and set first.
 			QS->Move_X = 0;					// replace 0 with your x coordinate
 			QS->Move_Y = 0;					// replace 0 with your y coordinate
@@ -267,10 +172,6 @@ long QSProcessThreadFunc(CTCSys *QS)
 			}
 		}
 		BufID = 1 - BufID;
-
-		// Set previous frame for next loop iteration
-		QS->IR.ProcBuf[0].copyTo(frame_left_prev);
-		QS->IR.ProcBuf[1].copyTo(frame_right_prev);
 	} 
 	QS->EventEndProcess = FALSE;
 	return 0;
