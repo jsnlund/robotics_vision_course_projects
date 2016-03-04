@@ -153,8 +153,45 @@ long QSProcessThreadFunc(CTCSys *QS)
 	Moments ball_m_left, ball_m_right;
 	Point2i ball_centroid_left, ball_centroid_right;
 
-	// TODO: Load camera params from files
+	// Load camera params from a file
+	FileStorage baseball_params("baseball_params.yaml", FileStorage::READ);
 
+	// Left and right camera params
+	Mat camera_matrix_left, camera_matrix_right;
+	Mat dist_coeffs_left, dist_coeffs_right;
+	baseball_params["distortion_left"] >> dist_coeffs_left;
+	baseball_params["intrinsic_left"] >> camera_matrix_left;
+	baseball_params["distortion_right"] >> dist_coeffs_right;
+	baseball_params["intrinsic_right"] >> camera_matrix_right;
+	
+	// Stereo params
+	//Mat fundamental_matrix, essential_matrix;
+	//Mat rmat, tvec;
+	//baseball_params["fundamental"] >> fundamental_matrix;
+	//baseball_params["rotation"] >> rmat;
+	//baseball_params["translation"] >> tvec;
+	//baseball_params["essential"] >> essential_matrix;
+
+	// Stereo rectify parameters
+	Mat rmat_left, rmat_right, pmat_left, pmat_right, Q;
+	baseball_params["rmat_left"] >> rmat_left;
+	baseball_params["rmat_right"] >> rmat_right;
+	baseball_params["pmat_left"] >> pmat_left;
+	baseball_params["pmat_right"] >> pmat_right;
+	baseball_params["q"] >> Q;
+
+	// TODO: Convert ball centroids to real-world coordinates using undistort points
+
+	vector<Point2f> ball_centroids_left, ball_centroids_left_undistorted, ball_centroids_right, ball_centroids_right_undistorted;
+
+
+	// Create a 3d collection of points for left and right, as well as outputs
+	// Create a 3 channel vector of (x,y,d), where x,y come from the 4 chosen points, and d is the x disparity between the two points
+	vector<Point3f> ball_centroid_3d_left, ball_centroid_3d_right;
+
+	// Real world coordinates of the centroid of the ball
+	// World points are based off of the left camera
+	vector<Point3f> real_ball_path;
 
 	while (QS->EventEndProcess == FALSE) {
 
@@ -215,112 +252,130 @@ long QSProcessThreadFunc(CTCSys *QS)
 				threshold(frame_left, frame_left, 10, 256, THRESH_BINARY);
 				threshold(frame_right, frame_right, 10, 256, THRESH_BINARY);
 
-				// TODO: Replace corner detection method with a faster triggering method
-				// I.e. average all the pixels and trigger if average goes above a certain number
-				double mean_left = mean(frame_left(roi_left)).val[0];
-				double mean_right = mean(frame_right(roi_right)).val[0];
+				//// TODO: Replace corner detection method with a faster triggering method
+				//// I.e. average all the pixels and trigger if average goes above a certain number
+				//double mean_left = mean(frame_left(roi_left)).val[0];
+				//double mean_right = mean(frame_right(roi_right)).val[0];
 
-				if (mean_left >= BALL_EMERGE_MEAN_THRESH && mean_right >= BALL_EMERGE_MEAN_THRESH){
-					putText(QS->IR.ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
-					putText(QS->IR.ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+				//if (mean_left >= BALL_EMERGE_MEAN_THRESH && mean_right >= BALL_EMERGE_MEAN_THRESH){
+				//	putText(QS->IR.ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+				//	putText(QS->IR.ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
+				//	frame_left_prev.copyTo(frame_left_first);
+				//	frame_right_prev.copyTo(frame_right_first);
+				//	ball_in_flight = true;
+				//}
+
+				// Detect when ball emerges
+				goodFeaturesToTrack(frame_left(roi_left), corners_left, 10, 0.01, 10);
+				goodFeaturesToTrack(frame_right(roi_right), corners_right, 10, 0.01, 10);
+
+				if(corners_left.size() > 0 && corners_left.size() > 0){
+					// Set the previous image as the first image (background image)
 					frame_left_prev.copyTo(frame_left_first);
 					frame_right_prev.copyTo(frame_right_first);
 					ball_in_flight = true;
 				}
-
-				// Detect when ball emerges
-				// TODO: Not Needed?
-				 //corners_left.clear();
-				 //corners_right.clear();
-				//goodFeaturesToTrack(frame_left(roi_left), corners_left, 10, 0.01, 10);
-				//goodFeaturesToTrack(frame_right(roi_right), corners_right, 10, 0.01, 10);
-
-				//if(corners_left.size() > 0 && corners_left.size() > 0){
-				////	// Set the previous image as the first image (background image)
-				////	frame_left_prev.copyTo(frame_left_first);
-				////	frame_right_prev.copyTo(frame_right_first);
-				////	ball_in_flight = true;
-				//}
 			}
 			else {
-				//// Do processing on images now that the ball is in flight
-				//absdiff(frame_left, frame_left_first, frame_left);
-				//absdiff(frame_right, frame_right_first, frame_right);
+				putText(QS->IR.ProcBuf[0], "BALL IN FLIGHT", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
-				//// Blur an roi
-				//GaussianBlur(frame_left(roi_left), frame_left(roi_left), Size(11, 11), 15.0, 15.0);
-				//GaussianBlur(frame_right(roi_right), frame_right(roi_right), Size(11, 11), 15.0, 15.0);
+				// Do processing on images now that the ball is in flight
+				absdiff(frame_left, frame_left_first, frame_left);
+				absdiff(frame_right, frame_right_first, frame_right);
 
-				//// Threshold roi
-				//threshold(frame_left(roi_left), frame_left(roi_left), 10, 256, THRESH_BINARY);
-				//threshold(frame_right(roi_right), frame_right(roi_right), 10, 256, THRESH_BINARY);
+				// Blur an roi
+				GaussianBlur(frame_left(roi_left), frame_left(roi_left), Size(11, 11), 15.0, 15.0);
+				GaussianBlur(frame_right(roi_right), frame_right(roi_right), Size(11, 11), 15.0, 15.0);
+
+				// Threshold roi
+				threshold(frame_left(roi_left), frame_left(roi_left), 10, 256, THRESH_BINARY);
+				threshold(frame_right(roi_right), frame_right(roi_right), 10, 256, THRESH_BINARY);
 
 				//// TODO: Ball tracking algorithm
 
 				//// Find Contours
-				//contours_left.clear();
-				//contours_right.clear();
-				//hierarchy_left.clear();
-				//hierarchy_right.clear();
-				//// Find contours modifies the input image!! So pass in a copy
-				//// findContours(frame_left_first_diff_thresh.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
-				//// CV_RETR_TREE CV_RETR_EXTERNAL
-				//// CV_CHAIN_APPROX_NONE CV_CHAIN_APPROX_SIMPLE
-				//// findContours(frame_left_first_diff_thresh.clone(), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
-				//// findContours(frame_right_first_diff_thresh.clone(), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
-				//findContours(frame_left.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
-				//findContours(frame_right.clone()(roi_right), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_right.x, roi_right.y));
-				//// cout << "Left Contours: " << contours_left.size() << endl;
+				contours_left.clear();
+				contours_right.clear();
+				hierarchy_left.clear();
+				hierarchy_right.clear();
+				// Find contours modifies the input image!! So pass in a copy
+				// findContours(frame_left_first_diff_thresh.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
+				// CV_RETR_TREE CV_RETR_EXTERNAL
+				// CV_CHAIN_APPROX_NONE CV_CHAIN_APPROX_SIMPLE
+				// findContours(frame_left_first_diff_thresh.clone(), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
+				// findContours(frame_right_first_diff_thresh.clone(), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
+				findContours(frame_left.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
+				findContours(frame_right.clone()(roi_right), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_right.x, roi_right.y));
+				// cout << "Left Contours: " << contours_left.size() << endl;
 
-				//// cout << "contours_left count: " << contours_left.size() << endl;
-				//// cout << "contours_right count: " << contours_right.size() << endl;
+				// cout << "contours_left count: " << contours_left.size() << endl;
+				// cout << "contours_right count: " << contours_right.size() << endl;
 
 				//// cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
 				////         cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
 				////
 				//// GET X,Y,Z location and move ROI
-				//if(contours_left.size() > 0 && contours_right.size() > 0){
-				//	// cout << "contours_left[0]: " << contours_left[0] << endl;
-				//	ball_contour_left = contours_left[0];
-				//	ball_m_left = moments(ball_contour_left);
-				//	ball_centroid_left = Point2i(int(ball_m_left.m10 / ball_m_left.m00), int(ball_m_left.m01 / ball_m_left.m00));
-				//	// cout << "left centroid: " << ball_centroid_left << endl;
-				//	// cout << "contours_right[0]: " << contours_right[0] << endl;
-				//	ball_contour_right = contours_right[0];
-				//	ball_m_right = moments(ball_contour_right);
-				//	ball_centroid_right = Point2i(int(ball_m_right.m10 / ball_m_right.m00), int(ball_m_right.m01 / ball_m_right.m00));
-				//	// cout << "right centroid: " << ball_centroid_right << endl;
-				//	// cout << "drawContours!" << endl;
-				//	drawContours(frame_left, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
-				//	// Draw the centroid of the ball
-				//	circle(frame_left, ball_centroid_left, 5, Scalar(200,80,0), 1);
-				//	// TODO: recalculate the roi
-				//	int x_margin_left = roi_left.width/2;
-				//	int y_margin_left = roi_left.height/2;
-				//	// TODO:
-				//	if(
-				//		ball_centroid_left.x <=  IMAGE_WIDTH - ROI_DEFAULT_WIDTH_LEFT/2 &&
-				//		ball_centroid_left.x >  ROI_DEFAULT_X_LEFT/2 &&
-				//		ball_centroid_left.y <=  IMAGE_WIDTH - ROI_DEFAULT_HEIGHT_LEFT/2 &&
-				//		ball_centroid_left.y >  ROI_DEFAULT_Y_LEFT/2 &&
-				//		ball_centroid_right.x <=  IMAGE_WIDTH - ROI_DEFAULT_WIDTH_RIGHT/2 &&
-				//		ball_centroid_right.x >  ROI_DEFAULT_X_RIGHT/2 &&
-				//		ball_centroid_right.y <=  IMAGE_WIDTH - ROI_DEFAULT_HEIGHT_RIGHT/2 &&
-				//		ball_centroid_right.y >  ROI_DEFAULT_Y_RIGHT/2
-				//	){
-				//		roi_left.x = ball_centroid_left.x;
-				//		roi_left.y = ball_centroid_left.y;
-				//		roi_right.x = ball_centroid_right.x;
-				//		roi_right.y = ball_centroid_right.y;
-				//	}
+				if(contours_left.size() > 0 && contours_right.size() > 0){
+					putText(QS->IR.ProcBuf[1], "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+
+					// cout << "contours_left[0]: " << contours_left[0] << endl;
+					ball_contour_left = contours_left[0];
+					ball_m_left = moments(ball_contour_left);
+					ball_centroid_left = Point2i(int(ball_m_left.m10 / ball_m_left.m00), int(ball_m_left.m01 / ball_m_left.m00));
+					// cout << "left centroid: " << ball_centroid_left << endl;
+					// cout << "contours_right[0]: " << contours_right[0] << endl;
+					ball_contour_right = contours_right[0];
+					ball_m_right = moments(ball_contour_right);
+					ball_centroid_right = Point2i(int(ball_m_right.m10 / ball_m_right.m00), int(ball_m_right.m01 / ball_m_right.m00));
+					// cout << "right centroid: " << ball_centroid_right << endl;
+					// cout << "drawContours!" << endl;
+					drawContours(frame_left, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
+					// Draw the centroid of the ball
+					circle(frame_left, ball_centroid_left, 5, Scalar(200,80,0), 1);
+					// recalculate the roi
+					int x_margin_left = roi_left.width/2;
+					int y_margin_left = roi_left.height/2;
+					if(
+						ball_centroid_left.x <=  IMAGE_WIDTH - ROI_DEFAULT_WIDTH_LEFT/2 &&
+						ball_centroid_left.x >  ROI_DEFAULT_X_LEFT/2 &&
+						ball_centroid_left.y <=  IMAGE_WIDTH - ROI_DEFAULT_HEIGHT_LEFT/2 &&
+						ball_centroid_left.y >  ROI_DEFAULT_Y_LEFT/2 &&
+						ball_centroid_right.x <=  IMAGE_WIDTH - ROI_DEFAULT_WIDTH_RIGHT/2 &&
+						ball_centroid_right.x >  ROI_DEFAULT_X_RIGHT/2 &&
+						ball_centroid_right.y <=  IMAGE_WIDTH - ROI_DEFAULT_HEIGHT_RIGHT/2 &&
+						ball_centroid_right.y >  ROI_DEFAULT_Y_RIGHT/2
+					){
+						roi_left.x = ball_centroid_left.x;
+						roi_left.y = ball_centroid_left.y;
+						roi_right.x = ball_centroid_right.x;
+						roi_right.y = ball_centroid_right.y;
+					}
+				}
+
+
+				//undistortPoints(ball_centroids_left, ball_centroids_left_undistorted, camera_matrix_left, dist_coeffs_left, rmat_left, pmat_left);
+				//undistortPoints(ball_centroids_right, ball_centroids_right_undistorted, camera_matrix_right, dist_coeffs_right, rmat_right, pmat_right);
+
+				//for (int i = 0; i < ball_centroids_left.size(); ++i) {
+				//	float x_left = ball_centroids_left_undistorted[i].x;
+				//	float y_left = ball_centroids_left_undistorted[i].y;
+				//	float x_right = ball_centroids_right_undistorted[i].x;
+				//	float y_right = ball_centroids_right_undistorted[i].y;
+				//	// So disparity = x - x', or left - right
+				//	ball_centroid_3d_left.push_back(Point3f(x_left, y_left, x_left - x_right));
+				//	ball_centroid_3d_right.push_back(Point3f(x_right, y_right, x_left - x_right));
 				//}
 
+				// Choose left points to transform
+				//perspectiveTransform(ball_centroid_3d_left, real_ball_path, Q);
+
+				// TODO: Print out the real-world coordinates of the centroid
 
 				// TODO: Ball Trajectory algorithm
 			}
 
-
+			// TODO: Reset the ball_in_flight bool after a certain number of frames with nothing in it
 
 			//findContours(frame_left_first_diff_thresh.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
 			//findContours(frame_right_first_diff_thresh.clone()(roi_right), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_right.x, roi_right.y));
