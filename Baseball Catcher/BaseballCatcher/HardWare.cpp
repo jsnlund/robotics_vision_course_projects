@@ -90,6 +90,25 @@ long QSProcessThreadFunc(CTCSys *QS)
 	//// Team 10 Code
 	//
 
+
+	// inches below the camera, so add this to
+	double const OFFSET_Y_CAMERA = 22.5;
+	// inches
+	double const OFFSET_X_CAMERA = 10.5;
+
+	// The camera is at z=0, but the catcher is probably at z = -3
+	double const CATCHER_Z = -3.0;
+
+	// X and Y Scale value - +/- 9 inches to catcher is more like +/- 11 inches in real life
+	// double const CATCHER_RANGE = 9.0;
+	// double const CATCHER_REAL_RANGE = 11.0;
+	double const L_CAMERA_SCALE_X = 9.0/11.0;
+	double const L_CAMERA_SCALE_Y = 9.0/11.0;
+
+	// Reset catcher if nothing is happening
+	int const EMPTY_FRAME_LIMIT = 10;
+	int empty_frame_count = 0;
+
 	int const IMAGE_WIDTH = 640;
 	int const IMAGE_HEIGHT = 480;
 
@@ -192,6 +211,11 @@ long QSProcessThreadFunc(CTCSys *QS)
 	// Real world coordinates of the centroid of the ball
 	// World points are based off of the left camera
 	vector<Point3f> real_ball_path;
+
+	// Change these to move the catcher
+	double move_catcher_y = 0;
+	double move_catcher_x = 0;
+
 
 	while (QS->EventEndProcess == FALSE) {
 
@@ -317,6 +341,8 @@ long QSProcessThreadFunc(CTCSys *QS)
 				////
 				//// GET X,Y,Z location and move ROI
 				if(contours_left.size() > 0 && contours_right.size() > 0){
+					// We found a ball! Reset idle frame count
+					empty_frame_count = 0;
 					putText(QS->IR.ProcBuf[1], "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 					// cout << "contours_left[0]: " << contours_left[0] << endl;
@@ -355,8 +381,12 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 					// Convert centroid points to real worlds 3d points
 					// Save the real 3d coordinates of the left centroid in real_ball_path
-					vector<Point2f> ball_centroids_left_vec = [ball_centroid_left];
-					vector<Point2f> ball_centroids_right_vec = [ball_centroid_right];
+					vector<Point2f> ball_centroids_left_vec;
+					ball_centroids_left_vec.push_back(ball_centroid_left);
+
+					vector<Point2f> ball_centroids_right_vec;
+					ball_centroids_right_vec.push_back(ball_centroid_right);
+
 					vector<Point2f> ball_centroids_left_undistorted, ball_centroids_right_undistorted;
 
 					undistortPoints(ball_centroids_left_vec, ball_centroids_left_undistorted, camera_matrix_left, dist_coeffs_left, rmat_left, pmat_left);
@@ -380,27 +410,61 @@ long QSProcessThreadFunc(CTCSys *QS)
 					stringstream real_coordinates;
 					real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left.x) << ", " << to_string((int)ball_centroid_3d_real_left.y) << ", " << to_string((int)ball_centroid_3d_real_left.z) << ")";
 					putText(QS->IR.ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0,200,0), 2);
+
+					//
+					//// Ball Trajectory algorithm
+					//
+					Point3f real_point = real_ball_path.back();
+
+					// Regression analysis
+					Mat X, Y, Z, A, B;
+
+					X.push_back(real_point.x);
+					Y.push_back(real_point.y);
+					Z.push_back(Point3f(1,real_point.z, real_point.z*real_point.z));
+
+					// A
+					A = (Z.t()*Z).inv() * Z.t() * Y;
+					B = (Z.t()*Z).inv() * Z.t() * X;
+
+					// y = A[0] + A[1]*z + A[2]*z^2, where z is the catcher's z plane
+					move_catcher_y = A.at<double>(0,0) + A.at<double>(1,0) * CATCHER_Z + A.at<double>(2,0) * CATCHER_Z * CATCHER_Z;
+					// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
+					move_catcher_x = B.at<double>(0,0) + B.at<double>(0,0) * CATCHER_Z + B.at<double>(0,0) * CATCHER_Z * CATCHER_Z;
+
+					// TODO: Figure out the center location of the net relative to the left camera
+				}
+				else {
+					// Nothing is happening
+					empty_frame_count++;
 				}
 
+				// Reset the ball_in_flight bool after a certain number of frames with nothing detected
+				if(empty_frame_count > EMPTY_FRAME_LIMIT){
+					// No ball has been found, so reset
+					ball_in_flight = false;
+					// Reset the roi
+					roi_left = ROI_DEFAULT_LEFT;
+					roi_right = ROI_DEFAULT_RIGHT;
+					// TODO: Do we want the catcher to stay in the same place, or reset to origin?
+					// TODO: Do we want the catcher to start to the right or left?
+					// TODO: Create starting position constants?
+					move_catcher_y = 0;
+					move_catcher_x = 0;
+				}
 
-				// TODO: Ball Trajectory algorithm
 			}
 
-			// TODO: Reset the ball_in_flight bool after a certain number of frames with nothing in it
-
-			//findContours(frame_left_first_diff_thresh.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
-			//findContours(frame_right_first_diff_thresh.clone()(roi_right), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_right.x, roi_right.y));
-
-
+			// Paint resulting frames to the output
 			QS->IR.ProcBuf[0].copyTo(QS->IR.OutBuf1[0]);
 			QS->IR.ProcBuf[1].copyTo(QS->IR.OutBuf1[1]);
 			frame_left(roi_left).copyTo(QS->IR.OutBuf1[0](roi_left));
 			frame_right(roi_right).copyTo(QS->IR.OutBuf1[1](roi_right));
 
-
 			// This is how you move the catcher.  QS->moveX and QS->moveY (both in inches) must be calculated and set first.
-			QS->Move_X = 0;					// replace 0 with your x coordinate
-			QS->Move_Y = 0;					// replace 0 with your y coordinate
+			// TODO: Are we offsetting in the right direction?
+			QS->Move_X = move_catcher_y + OFFSET_Y_CAMERA;
+			QS->Move_Y = move_catcher_x - OFFSET_X_CAMERA;
 			SetEvent(QS->QSMoveEvent);		// Signal the move event to move catcher. The event will be reset in the move thread.
 		}
 		// Display Image
