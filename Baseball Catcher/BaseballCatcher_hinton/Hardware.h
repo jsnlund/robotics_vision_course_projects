@@ -32,20 +32,20 @@ using namespace cv;
 #define TRIGGER_ON			0						// Is the camera on an external trigger or not
 
 #define MAX_CAMERA		2
-#define MAX_BUFFER		32
+#define MAX_BUFFER		60
 
 #define SQUARE(a) ((a)*(a))
 #define DISTANCE_SQ(x1,y1,x2,y2) (SQUARE((x1)-(x2))+SQUARE((y1)-(y2)))
 
-#if defined(DEVELOPMENT) || defined(XLPORT) 
+#if defined(DEVELOPMENT) || defined(XLPORT)
 #define OPENF(txt) fopen_s(&m_fp, txt,"wt")
 #define	FLUSHF _flushall()
 #define CLOSEF fclose(m_fp)
 #define DECLARE_F FILE *m_fp;
 #else
-#define OPENF(txt) 
+#define OPENF(txt)
 #define	FLUSHF
-#define CLOSEF 
+#define CLOSEF
 #define DECLARE_F
 #endif
 
@@ -54,22 +54,22 @@ using namespace cv;
 #define FTDTRACE(txt) fprintf(pt->m_fp,txt)
 #define FGTDTRACE(txt) fprintf(TP->m_fp,txt)
 #else
-#define FTRACE(txt) 
-#define FTDTRACE(txt) 
+#define FTRACE(txt)
+#define FTDTRACE(txt)
 #define FGTDTRACE(txt)
 #endif
 
 #ifdef XLPORT
 #define XLTRACE(txt) fprintf(m_fp,txt)
 #else
-#define XLTRACE(txt) 
+#define XLTRACE(txt)
 #endif
 
 #define CMA ,
 
 typedef struct
 {
-	int			DigSizeX;	
+	int			DigSizeX;
 	int			DigSizeY;
 	int			NumCameras;
 	int			from_to[6];
