@@ -163,7 +163,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 	baseball_params["intrinsic_left"] >> camera_matrix_left;
 	baseball_params["distortion_right"] >> dist_coeffs_right;
 	baseball_params["intrinsic_right"] >> camera_matrix_right;
-	
+
 	// Stereo params
 	//Mat fundamental_matrix, essential_matrix;
 	//Mat rmat, tvec;
@@ -333,44 +333,55 @@ long QSProcessThreadFunc(CTCSys *QS)
 					drawContours(frame_left, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
 					// Draw the centroid of the ball
 					circle(frame_left, ball_centroid_left, 5, Scalar(200,80,0), 1);
-					// recalculate the roi
-					int x_margin_left = roi_left.width/2;
-					int y_margin_left = roi_left.height/2;
+					// recalculate the roi (roi widths and heights should be the same)
+					int x_margin = roi_left.width/2;
+					int y_margin = roi_left.height/2;
 					if(
-						ball_centroid_left.x <=  IMAGE_WIDTH - ROI_DEFAULT_WIDTH_LEFT/2 &&
-						ball_centroid_left.x >  ROI_DEFAULT_X_LEFT/2 &&
-						ball_centroid_left.y <=  IMAGE_WIDTH - ROI_DEFAULT_HEIGHT_LEFT/2 &&
-						ball_centroid_left.y >  ROI_DEFAULT_Y_LEFT/2 &&
-						ball_centroid_right.x <=  IMAGE_WIDTH - ROI_DEFAULT_WIDTH_RIGHT/2 &&
-						ball_centroid_right.x >  ROI_DEFAULT_X_RIGHT/2 &&
-						ball_centroid_right.y <=  IMAGE_WIDTH - ROI_DEFAULT_HEIGHT_RIGHT/2 &&
-						ball_centroid_right.y >  ROI_DEFAULT_Y_RIGHT/2
+						ball_centroid_left.x <  IMAGE_WIDTH - x_margin &&
+						ball_centroid_left.x >  x_margin &&
+						ball_centroid_left.y <  IMAGE_HEIGHT - y_margin &&
+						ball_centroid_left.y >  y_margin &&
+
+						ball_centroid_right.x <  IMAGE_WIDTH - x_margin &&
+						ball_centroid_right.x >  x_margin &&
+						ball_centroid_right.y <  IMAGE_HEIGHT - y_margin &&
+						ball_centroid_right.y >  y_margin
 					){
-						roi_left.x = ball_centroid_left.x;
-						roi_left.y = ball_centroid_left.y;
-						roi_right.x = ball_centroid_right.x;
-						roi_right.y = ball_centroid_right.y;
+						roi_left.x = ball_centroid_left.x - x_margin;
+						roi_left.y = ball_centroid_left.y - y_margin;
+						roi_right.x = ball_centroid_right.x - x_margin;
+						roi_right.y = ball_centroid_right.y - y_margin;
 					}
+
+					// Convert centroid points to real worlds 3d points
+					// Save the real 3d coordinates of the left centroid in real_ball_path
+					vector<Point2f> ball_centroids_left_vec = [ball_centroid_left];
+					vector<Point2f> ball_centroids_right_vec = [ball_centroid_right];
+					vector<Point2f> ball_centroids_left_undistorted, ball_centroids_right_undistorted;
+
+					undistortPoints(ball_centroids_left_vec, ball_centroids_left_undistorted, camera_matrix_left, dist_coeffs_left, rmat_left, pmat_left);
+					undistortPoints(ball_centroids_right_vec, ball_centroids_right_undistorted, camera_matrix_right, dist_coeffs_right, rmat_right, pmat_right);
+
+					float x_left = ball_centroids_left_undistorted[0].x;
+					float y_left = ball_centroids_left_undistorted[0].y;
+					float x_right = ball_centroids_right_undistorted[0].x;
+					float y_right = ball_centroids_right_undistorted[0].y;
+					// So disparity = x - x', or left - right
+					ball_centroid_3d_left.push_back(Point3f(x_left, y_left, x_left - x_right));
+					// ball_centroid_3d_right.push_back(Point3f(x_right, y_right, x_left - x_right));
+
+					// Choose left points to transform
+					vector<Point3f> ball_centroid_3d_real_left;
+					perspectiveTransform(ball_centroid_3d_left, ball_centroid_3d_real_left, Q);
+					// Save the real-world centroid location
+					real_ball_path.push_back(ball_centroid_3d_real_left[0]);
+
+					// Print out the real-world coordinates of the ball
+					stringstream real_coordinates;
+					real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left.x) << ", " << to_string((int)ball_centroid_3d_real_left.y) << ", " << to_string((int)ball_centroid_3d_real_left.z) << ")";
+					putText(QS->IR.ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0,200,0), 2);
 				}
 
-
-				//undistortPoints(ball_centroids_left, ball_centroids_left_undistorted, camera_matrix_left, dist_coeffs_left, rmat_left, pmat_left);
-				//undistortPoints(ball_centroids_right, ball_centroids_right_undistorted, camera_matrix_right, dist_coeffs_right, rmat_right, pmat_right);
-
-				//for (int i = 0; i < ball_centroids_left.size(); ++i) {
-				//	float x_left = ball_centroids_left_undistorted[i].x;
-				//	float y_left = ball_centroids_left_undistorted[i].y;
-				//	float x_right = ball_centroids_right_undistorted[i].x;
-				//	float y_right = ball_centroids_right_undistorted[i].y;
-				//	// So disparity = x - x', or left - right
-				//	ball_centroid_3d_left.push_back(Point3f(x_left, y_left, x_left - x_right));
-				//	ball_centroid_3d_right.push_back(Point3f(x_right, y_right, x_left - x_right));
-				//}
-
-				// Choose left points to transform
-				//perspectiveTransform(ball_centroid_3d_left, real_ball_path, Q);
-
-				// TODO: Print out the real-world coordinates of the centroid
 
 				// TODO: Ball Trajectory algorithm
 			}
