@@ -60,13 +60,8 @@ int main(int argc, char const *argv[]){
     // Choose which stereo image pair to generate Q off of
     String const STEREO_RECTIFICATION_PAIR_NUMBER = "4";
 
-
     // Should all be .bmp
     String const IMAGE_FILE_SUFFIX = ".bmp";
-
-    // int const IMAGE_WIDTH = 640;
-    // int const IMAGE_HEIGHT = 480;
-
 
     //
     //// Chessboard vars for left, right, and stereo:
@@ -180,7 +175,7 @@ int main(int argc, char const *argv[]){
 
     // There should be equal amounts of elements
     CV_Assert(object_points_vector_left.size() == image_points_vector_left.size());
-    cout << "Calibrating LEFT camera with " << object_points_vector_left.size() << " valid images out of a total of " << IMAGE_COUNT_LEFT << endl;
+    cout << "Calibrating LEFT camera with " << object_points_vector_left.size() << " valid images out of a total of " << IMAGE_COUNT_LEFT << "..." << endl << endl;
 
     // Calibrate the LEFT camera with the extracted points
     calibrateCamera(object_points_vector_left, image_points_vector_left, frame_display.size(), camera_matrix_left, dist_coeffs_left, rvecs, tvecs);
@@ -249,7 +244,7 @@ int main(int argc, char const *argv[]){
 
     // There should be equal amounts of elements
     CV_Assert(object_points_vector_right.size() == image_points_vector_right.size());
-    cout << "Calibrating RIGHT camera with " << object_points_vector_right.size() << " valid images out of a total of " << IMAGE_COUNT_RIGHT << endl;
+    cout << "Calibrating RIGHT camera with " << object_points_vector_right.size() << " valid images out of a total of " << IMAGE_COUNT_RIGHT << "..." << endl << endl;
 
     // Calibrate the LEFT camera with the extracted points
     calibrateCamera(object_points_vector_right, image_points_vector_right, frame_display.size(), camera_matrix_right, dist_coeffs_right, rvecs, tvecs);
@@ -378,16 +373,14 @@ int main(int argc, char const *argv[]){
     //
     //// Use left and right camera parameters
     //
-    // NOTE: In opencv, the first camera is always the left camera, the second is the right
-    // Use CV_CALIB_USE_INTRINSIC_GUESS in order to use the camera parameters generated in task 1 instead of overwriting them
-    stereoCalibrate(object_points_vector_stereo, image_points_vector_stereo_left, image_points_vector_stereo_right, camera_matrix_left, dist_coeffs_left, camera_matrix_right, dist_coeffs_right, frame_display_left.size(), rmat, tvec, essential_matrix, fundamental_matrix);
 
+    cout << "Calibrating STEREO parameters with " << object_points_vector_stereo.size() << " valid images out of a total of " << IMAGE_COUNT_STEREO << "..." << endl << endl;
+    // NOTE: In opencv, the first camera is always the left camera, the second is the right
+    stereoCalibrate(object_points_vector_stereo, image_points_vector_stereo_left, image_points_vector_stereo_right, camera_matrix_left, dist_coeffs_left, camera_matrix_right, dist_coeffs_right, frame_display_left.size(), rmat, tvec, essential_matrix, fundamental_matrix);
 
     //
     //// Stereo Rectify
     //
-
-
 
     // Load the image
     calib_image_file_stereo_left.str("");
@@ -423,17 +416,19 @@ int main(int argc, char const *argv[]){
     Mat pmat_left, pmat_right;
     Mat Q;
 
+    cout << "Creating STEREO RECTIFY parameters with " << calib_image_file_stereo_left.str() << " and " << calib_image_file_stereo_right.str() << "..." << endl << endl;
+
     // 1 is left, 2 is right
     stereoRectify(camera_matrix_left, dist_coeffs_left, camera_matrix_right, dist_coeffs_right, frame_left.size(), rmat, tvec, rmat_left, rmat_right, pmat_left, pmat_right, Q);
-
 
     //
     //// Save Parameters to a file
     //
 
+    string output_file = "baseball_params.yaml";
+    cout << "Writing parameters to " << output_file << "..." << endl << endl;
     // Save files as yaml using FileStorage
-    // string output_file = "baseball_params.yaml";
-    FileStorage baseball_params("baseball_params.yaml", FileStorage::WRITE);
+    FileStorage baseball_params(output_file, FileStorage::WRITE);
     // Left camera calibration
     baseball_params << "intrinsic_left" << camera_matrix_left;
     baseball_params << "distortion_left" << dist_coeffs_left;
