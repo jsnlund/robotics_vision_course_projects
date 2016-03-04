@@ -1,7 +1,3 @@
-// Use "Right Camera" and "Left Camera2" sets of images from "Our Images" zip file
-// Put both folders in the folder "task1", and rename them "left" and "right"
-// There are 32 images each, going from 0 to 31
-
 // Folders and files that are needed:
 //      left_calib/
 //      right_calib/
@@ -11,27 +7,14 @@
 
 // Example usage:
 //      ./baseball_calibration.exe
-//      ./baseball_calibration.exe > baseball_params.txt
 
-
-// #include <opencv2/core.hpp>
-// #include <opencv2/videoio.hpp>
-// #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp> // For cvtColor, Canny, GaussianBlur, etc.
 // For file input/output
 #include <iostream>
 #include <iomanip> // To increase output precision
-#include <fstream>
 
 using namespace cv;
 using namespace std;
-
-// Cool trick: compilers automatically concatenate adjacent string literals! "+" won't work
-// string const USAGE_DESCRIPTION =
-// "Usage:  baseball_calibration.exe\n"
-// "    *Use the -r flag to calibrate with the right camera images\n"
-// "    *Run without the -r flag to calibrate with the left camera images\n";
-
 
 int main(int argc, char const *argv[]){
     //
