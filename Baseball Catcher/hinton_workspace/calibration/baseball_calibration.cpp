@@ -40,15 +40,15 @@ int main(int argc, char const *argv[]){
 
     String const FOLDER_CALIB_LEFT = "left_calib\\";
     String const FILE_PREFIX_CALIB_LEFT = "LeftCamera2L";
-    int const CALIB_LEFT_MIN_NUMBER = 0;
-    int const CALIB_LEFT_MAX_NUMBER = 31;
-    int const IMAGE_COUNT_LEFT = CALIB_LEFT_MAX_NUMBER - CALIB_LEFT_MIN_NUMBER + 1;
+    int const MIN_NUMBER_CALIB_LEFT = 0;
+    int const MAX_NUMBER_CALIB_LEFT = 31;
+    int const IMAGE_COUNT_LEFT = MAX_NUMBER_CALIB_LEFT - MIN_NUMBER_CALIB_LEFT + 1;
 
     String const FOLDER_CALIB_RIGHT = "right_calib\\";
     String const FILE_PREFIX_CALIB_RIGHT = "RightCameraR";
-    int const CALIB_RIGHT_MIN_NUMBER = 0;
-    int const CALIB_RIGHT_MAX_NUMBER = 31;
-    int const IMAGE_COUNT_RIGHT = CALIB_RIGHT_MAX_NUMBER - CALIB_RIGHT_MIN_NUMBER + 1;
+    int const MIN_NUMBER_CALIB_RIGHT = 0;
+    int const MAX_NUMBER_CALIB_RIGHT = 31;
+    int const IMAGE_COUNT_RIGHT = MAX_NUMBER_CALIB_RIGHT - MIN_NUMBER_CALIB_RIGHT + 1;
 
     String const FOLDER_CALIB_STEREO = "stereo_calib\\";
     String const FILE_PREFIX_STEREO_LEFT = "StereoL";
@@ -56,6 +56,9 @@ int main(int argc, char const *argv[]){
     int const MIN_IMAGE_NUMBER_CALIB_STEREO = 0;
     int const MAX_IMAGE_NUMBER_CALIB_STEREO = 31;
     int const IMAGE_COUNT_STEREO = MAX_IMAGE_NUMBER_CALIB_STEREO - MIN_IMAGE_NUMBER_CALIB_STEREO + 1;
+
+    // Choose which stereo image pair to generate Q off of
+    String const STEREO_RECTIFICATION_PAIR_NUMBER = "4";
 
 
     // Should all be .bmp
@@ -119,7 +122,7 @@ int main(int argc, char const *argv[]){
     Mat frame_display;
 
     // Loop through each calibration image and extract a list of image points
-    for (int i = CALIB_LEFT_MIN_NUMBER; i <= CALIB_LEFT_MAX_NUMBER; ++i) {
+    for (int i = MIN_NUMBER_CALIB_LEFT; i <= MAX_NUMBER_CALIB_LEFT; ++i) {
         // Load the image
         calib_image_file_left.str("");
         calib_image_file_left.clear();
@@ -189,7 +192,7 @@ int main(int argc, char const *argv[]){
 
 
     // Loop through each calibration image and extract a list of image points
-    for (int i = CALIB_RIGHT_MIN_NUMBER; i <= CALIB_RIGHT_MAX_NUMBER; ++i) {
+    for (int i = MIN_NUMBER_CALIB_RIGHT; i <= MAX_NUMBER_CALIB_RIGHT; ++i) {
         // Load the image
         calib_image_file_right.str("");
         calib_image_file_right.clear();
@@ -386,15 +389,47 @@ int main(int argc, char const *argv[]){
 
 
 
+    // Load the image
+    calib_image_file_stereo_left.str("");
+    calib_image_file_stereo_left.clear();
+    calib_image_file_stereo_right.str("");
+    calib_image_file_stereo_right.clear();
 
+    // Calculate the full path to the image file
+    calib_image_file_stereo_left << FOLDER_CALIB_STEREO << FILE_PREFIX_STEREO_LEFT << setw(2) << setfill('0') << STEREO_RECTIFICATION_PAIR_NUMBER << IMAGE_FILE_SUFFIX;
+    calib_image_file_stereo_right << FOLDER_CALIB_STEREO << FILE_PREFIX_STEREO_RIGHT << setw(2) << setfill('0') << STEREO_RECTIFICATION_PAIR_NUMBER << IMAGE_FILE_SUFFIX;
 
+    // Load the image
+    frame_left = imread(calib_image_file_stereo_left.str(), CV_LOAD_IMAGE_COLOR);
+    frame_right = imread(calib_image_file_stereo_right.str(), CV_LOAD_IMAGE_COLOR);
 
+    // Exit if no images were grabbed
+    if( frame_left.empty() ) {
+        cout <<  "Could not open or find the left stereo image. Did you unzip the calibration images?" << std::endl ;
+        // Show the image file path
+        cout << "Left Image File: " << calib_image_file_stereo_left.str() << endl;
+        return -1;
+    }
+
+    // Exit if no images were grabbed
+    if( frame_right.empty() ) {
+        cout <<  "Could not open or find the right stereo image. Did you unzip the calibration images?" << std::endl ;
+        // Show the image file path
+        cout << "Right Image File: " << calib_image_file_stereo_right.str() << endl;
+        return -1;
+    }
+
+    Mat rmat_left, rmat_right;
+    Mat pmat_left, pmat_right;
+    Mat Q;
+
+    // 1 is left, 2 is right
+    stereoRectify(camera_matrix_left, dist_coeffs_left, camera_matrix_right, dist_coeffs_right, frame_left.size(), rmat, tvec, rmat_left, rmat_right, pmat_left, pmat_right, Q);
 
 
     //
     //// Save Parameters to a file
     //
-
 
     // Save files as yaml using FileStorage
     // string output_file = "baseball_params.yaml";
@@ -410,12 +445,12 @@ int main(int argc, char const *argv[]){
     baseball_params << "translation" << tvec;
     baseball_params << "rotation" << rmat;
     baseball_params << "essential" << essential_matrix;
-    // // Stereo rectification
-    // baseball_params << "rmat_left" << rmat_left;
-    // baseball_params << "rmat_right" << rmat_right;
-    // baseball_params << "pmat_left" << pmat_left;
-    // baseball_params << "pmat_right" << pmat_right;
-    // baseball_params << "q" << Q;
+    // Stereo rectification
+    baseball_params << "rmat_left" << rmat_left;
+    baseball_params << "rmat_right" << rmat_right;
+    baseball_params << "pmat_left" << pmat_left;
+    baseball_params << "pmat_right" << pmat_right;
+    baseball_params << "q" << Q;
 
     baseball_params.release();
 
