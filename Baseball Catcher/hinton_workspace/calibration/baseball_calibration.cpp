@@ -51,10 +51,11 @@ int main(int argc, char const *argv[]){
     int const IMAGE_COUNT_RIGHT = CALIB_RIGHT_MAX_NUMBER - CALIB_RIGHT_MIN_NUMBER + 1;
 
     String const FOLDER_CALIB_STEREO = "stereo_calib\\";
-    String const FILE_PREFIX_STEREO = "Stereo";
-    int const CALIB_STEREO_MIN_NUMBER = 0;
-    int const CALIB_STEREO_MAX_NUMBER = 31;
-    int const IMAGE_COUNT_STEREO = CALIB_STEREO_MAX_NUMBER - CALIB_STEREO_MIN_NUMBER + 1;
+    String const FILE_PREFIX_STEREO_LEFT = "StereoL";
+    String const FILE_PREFIX_STEREO_RIGHT = "StereoR";
+    int const MIN_IMAGE_NUMBER_CALIB_STEREO = 0;
+    int const MAX_IMAGE_NUMBER_CALIB_STEREO = 31;
+    int const IMAGE_COUNT_STEREO = MAX_IMAGE_NUMBER_CALIB_STEREO - MIN_IMAGE_NUMBER_CALIB_STEREO + 1;
 
 
     // Should all be .bmp
@@ -82,8 +83,7 @@ int main(int argc, char const *argv[]){
     int const FIND_CHESSBOARD_FLAGS = CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE;
 
     // A vector to hold the current array of chessboard corner coordinates
-    // vector<Point2f> corners_left, corners_right, corners_stereo_left, corners_stereo_right;
-    vector<Point2f> chessboard_corners;
+    vector<Point2f> chessboard_corners, chessboard_corners_left, chessboard_corners_right;
     // Object points should be the same for left, right, and stereo
     vector<Point3f> object_points;
     for (int i = 0; i < CHESSBOARD_CORNERS_COUNT; ++i) {
@@ -117,12 +117,6 @@ int main(int argc, char const *argv[]){
     // Current image buffers
     Mat frame;
     Mat frame_display;
-
-    // Mat frameLeft; // allocate an image buffer object
-    // Mat frameDisplayLeft; // the frame to work with
-
-    // Mat frameRight; // allocate an image buffer object
-    // Mat frameDisplayRight; // the frame to work with
 
     // Loop through each calibration image and extract a list of image points
     for (int i = CALIB_LEFT_MIN_NUMBER; i <= CALIB_LEFT_MAX_NUMBER; ++i) {
@@ -243,7 +237,6 @@ int main(int argc, char const *argv[]){
     }
 
 
-
     // Initialize a 3x3 matrix that will be overwritten (64F is a double, not a float)
     Mat camera_matrix_right = Mat::zeros(3, 3, CV_64F);
     // Initialize 8x1 coefficient matrix (64F is a double, not a float)
@@ -263,17 +256,128 @@ int main(int argc, char const *argv[]){
     //// Stereo Calibrate
     //
 
+    // These are the pixel points of the located corners in the image
+    vector<Point2f> image_points_stereo_left;
+    vector<Point2f> image_points_stereo_right;
+    // Vector of vectors
+    vector<vector<Point2f>> image_points_vector_stereo_left;
+    vector<vector<Point2f>> image_points_vector_stereo_right;
+    vector<vector<Point3f>> object_points_vector_stereo;
+
+    Mat frame_left; // allocate an image buffer object
+    Mat frame_display_left; // the frame to work with
+
+    Mat frame_right; // allocate an image buffer object
+    Mat frame_display_right; // the frame to work with
+
+    stringstream calib_image_file_stereo_left;
+    stringstream calib_image_file_stereo_right;
+
+    // Loop through each pair of stereo images and extract image points
+    for (int i = MIN_IMAGE_NUMBER_CALIB_STEREO; i <= MAX_IMAGE_NUMBER_CALIB_STEREO; ++i) {
+
+        // Load the image
+        calib_image_file_stereo_left.str("");
+        calib_image_file_stereo_left.clear();
+        calib_image_file_stereo_right.str("");
+        calib_image_file_stereo_right.clear();
+
+        // Calculate the full path to the image file
+        calib_image_file_stereo_left << FOLDER_CALIB_STEREO << FILE_PREFIX_STEREO_LEFT << setw(2) << setfill('0') << to_string(i) << IMAGE_FILE_SUFFIX;
+        calib_image_file_stereo_right << FOLDER_CALIB_STEREO << FILE_PREFIX_STEREO_RIGHT << setw(2) << setfill('0') << to_string(i) << IMAGE_FILE_SUFFIX;
+
+        // Load the image
+        frame_left = imread(calib_image_file_stereo_left.str(), CV_LOAD_IMAGE_COLOR);
+        frame_right = imread(calib_image_file_stereo_right.str(), CV_LOAD_IMAGE_COLOR);
+
+        // Exit if no images were grabbed
+        if( frame_left.empty() ) {
+            cout <<  "Could not open or find the left image. Did you unzip the calibration images?" << std::endl ;
+            // Show the image file path
+            cout << "Left Image File: " << calib_image_file_stereo_left.str() << endl;
+            return -1;
+        }
+
+        // Exit if no images were grabbed
+        if( frame_right.empty() ) {
+            cout <<  "Could not open or find the right image. Did you unzip the calibration images?" << std::endl ;
+            // Show the image file path
+            cout << "Right Image File: " << calib_image_file_stereo_right.str() << endl;
+            return -1;
+        }
+
+        // Clear corner values, so that it doesn't grow to more than 40 points
+        image_points_stereo_left.clear();
+        image_points_stereo_right.clear();
+
+        //  Get a grayscale copy to work on
+        frame_left.copyTo(frame_display_left);
+        frame_right.copyTo(frame_display_right);
+        cvtColor(frame_display_left, frame_display_left, COLOR_BGR2GRAY);
+        cvtColor(frame_display_right, frame_display_right, COLOR_BGR2GRAY);
+
+        //// Process the image
+        pattern_was_found = findChessboardCorners(frame_display_left, PATTERN_SIZE, chessboard_corners_left, FIND_CHESSBOARD_FLAGS);
+        if(!pattern_was_found){
+            cout << "Left Chessboard Corners not found!!" << endl;
+            cout << "Left Image File: " << calib_image_file_stereo_left.str() << endl;
+            // if chessboard is not found, omit the image pair
+            continue;
+        }
+
+        pattern_was_found = findChessboardCorners(frame_display_right, PATTERN_SIZE, chessboard_corners_right, FIND_CHESSBOARD_FLAGS);
+        if(!pattern_was_found){
+            cout << "Right Chessboard Corners not found!!" << endl;
+            cout << "Right Image File: " << calib_image_file_stereo_right.str() << endl;
+            // if chessboard is not found, omit the image pair
+            continue;
+        }
+
+        cornerSubPix(frame_display_left, chessboard_corners_left, Size(11,11), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1 ));
+        cornerSubPix(frame_display_right, chessboard_corners_right, Size(11,11), Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1 ));
+
+        // cout << corners << endl;
+        // cout << "Corners Size: " << corners.size() << endl;
+        // cout << "Corners Calculated Size: " << (CHESSBOARD_ROWS-1)*(CHESSBOARD_COLUMNS-1) << endl;
+
+        // Make sure that we have all the corners we expect...
+        CV_Assert(chessboard_corners_left.size() == (CHESSBOARD_ROWS-1)*(CHESSBOARD_COLUMNS-1));
+        CV_Assert(chessboard_corners_right.size() == (CHESSBOARD_ROWS-1)*(CHESSBOARD_COLUMNS-1));
+        CV_Assert(chessboard_corners_left.size() == chessboard_corners_right.size());
+
+        // Extract all the 2-d corner points into imagePoints
+        for (int i = 0; i < chessboard_corners_left.size(); ++i) {
+            image_points_stereo_left.push_back(chessboard_corners_left[i]);
+            image_points_stereo_right.push_back(chessboard_corners_right[i]);
+        }
+        // cout << image_points_stereo_left << endl;
+        // cout << image_points_stereo_right << endl;
+
+        // Make sure that the # of object points and image points are the same
+        CV_Assert(object_points.size() == image_points_stereo_left.size());
+        CV_Assert(image_points_stereo_right.size() == image_points_stereo_left.size());
+
+        // Save the 2-d and 3-d vectors to a vector of vectors
+        object_points_vector_stereo.push_back(object_points);
+        image_points_vector_stereo_left.push_back(image_points_stereo_left);
+        image_points_vector_stereo_right.push_back(image_points_stereo_right);
+    }
 
 
 
+    // Make sure that the # of image point vectors and object point vectors are all the same
+    CV_Assert(object_points_vector_stereo.size() == image_points_vector_stereo_left.size());
+    CV_Assert(image_points_vector_stereo_left.size() == image_points_vector_stereo_right.size());
 
+    Mat rmat, tvec;
+    Mat essential_matrix, fundamental_matrix;
 
-
-
-
-
-
-
+    //
+    //// Use left and right camera parameters
+    //
+    // NOTE: In opencv, the first camera is always the left camera, the second is the right
+    // Use CV_CALIB_USE_INTRINSIC_GUESS in order to use the camera parameters generated in task 1 instead of overwriting them
+    stereoCalibrate(object_points_vector_stereo, image_points_vector_stereo_left, image_points_vector_stereo_right, camera_matrix_left, dist_coeffs_left, camera_matrix_right, dist_coeffs_right, frame_display_left.size(), rmat, tvec, essential_matrix, fundamental_matrix);
 
 
     //
@@ -298,14 +402,14 @@ int main(int argc, char const *argv[]){
     // Left camera calibration
     baseball_params << "intrinsic_left" << camera_matrix_left;
     baseball_params << "distortion_left" << dist_coeffs_left;
-    // // Right camera calibration
+    // Right camera calibration
     baseball_params << "intrinsic_right" << camera_matrix_right;
     baseball_params << "distortion_right" << dist_coeffs_right;
-    // // Stereo calibration
-    // baseball_params << "fundamental" << fundamental_matrix;
-    // baseball_params << "translation" << tvec;
-    // baseball_params << "rotation" << rmat;
-    // baseball_params << "essential" << essential_matrix;
+    // Stereo calibration
+    baseball_params << "fundamental" << fundamental_matrix;
+    baseball_params << "translation" << tvec;
+    baseball_params << "rotation" << rmat;
+    baseball_params << "essential" << essential_matrix;
     // // Stereo rectification
     // baseball_params << "rmat_left" << rmat_left;
     // baseball_params << "rmat_right" << rmat_right;
