@@ -102,8 +102,8 @@ long QSProcessThreadFunc(CTCSys *QS)
 	// X and Y Scale value - +/- 9 inches to catcher is more like +/- 11 inches in real life
 	// double const CATCHER_RANGE = 9.0;
 	// double const CATCHER_REAL_RANGE = 11.0;
-	double const L_CAMERA_SCALE_X = 9.0/11.0;
-	double const L_CAMERA_SCALE_Y = 9.0/11.0;
+	double const SCALE_X_CATCHER = 9.0/11.0;
+	double const SCALE_Y_CATCHER = 9.0/11.0;
 
 	// Reset catcher if nothing is happening
 	int const EMPTY_FRAME_LIMIT = 10;
@@ -462,9 +462,9 @@ long QSProcessThreadFunc(CTCSys *QS)
 			frame_right(roi_right).copyTo(QS->IR.OutBuf1[1](roi_right));
 
 			// This is how you move the catcher.  QS->moveX and QS->moveY (both in inches) must be calculated and set first.
-			// TODO: Are we offsetting in the right direction?
-			QS->Move_X = move_catcher_y + OFFSET_Y_CAMERA;
-			QS->Move_Y = move_catcher_x - OFFSET_X_CAMERA;
+			// TODO: Are we offsetting in the right direction? Scaling correctly?
+			QS->Move_X = (move_catcher_x - OFFSET_X_CAMERA) * SCALE_X_CATCHER;
+			QS->Move_Y = (move_catcher_y + OFFSET_Y_CAMERA) * SCALE_Y_CATCHER;
 			SetEvent(QS->QSMoveEvent);		// Signal the move event to move catcher. The event will be reset in the move thread.
 		}
 		// Display Image
