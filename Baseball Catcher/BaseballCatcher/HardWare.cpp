@@ -408,7 +408,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 					// Print out the real-world coordinates of the ball
 					stringstream real_coordinates;
-					real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left.x) << ", " << to_string((int)ball_centroid_3d_real_left.y) << ", " << to_string((int)ball_centroid_3d_real_left.z) << ")";
+					real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left[0].x) << ", " << to_string((int)ball_centroid_3d_real_left[0].y) << ", " << to_string((int)ball_centroid_3d_real_left[0].z) << ")";
 					putText(QS->IR.ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0,200,0), 2);
 
 					//
