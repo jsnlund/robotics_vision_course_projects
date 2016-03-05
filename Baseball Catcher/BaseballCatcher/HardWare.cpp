@@ -290,6 +290,8 @@ long QSProcessThreadFunc(CTCSys *QS)
 				//	ball_in_flight = true;
 				//}
 
+
+				// JAson is adding a note
 				// Detect when ball emerges
 				goodFeaturesToTrack(frame_left(roi_left), corners_left, 10, 0.01, 10);
 				goodFeaturesToTrack(frame_right(roi_right), corners_right, 10, 0.01, 10);
