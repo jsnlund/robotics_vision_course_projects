@@ -102,36 +102,37 @@ long QSProcessThreadFunc(CTCSys *QS)
 	// X and Y Scale value - +/- 9 inches to catcher is more like +/- 11 inches in real life
 	// double const CATCHER_RANGE = 9.0;
 	// double const CATCHER_REAL_RANGE = 11.0;
-	double const SCALE_X_CATCHER = 9.0/11.0;
-	double const SCALE_Y_CATCHER = 9.0/11.0;
+	//double const SCALE_X_CATCHER = 9.0/11.0;
+	//double const SCALE_Y_CATCHER = 9.0/11.0;
+	double const SCALE_X_CATCHER = 1.0;
+	double const SCALE_Y_CATCHER = 1.0;
 
 	// Reset catcher if nothing is happening
 	int const EMPTY_FRAME_LIMIT = 10;
 	int empty_frame_count = 0;
 
+	// Create a hard reset after
+	int const HARD_RESET_LIMIT = 100;
+	int hard_reset_counter = 0;
+
+
 	int const IMAGE_WIDTH = 640;
 	int const IMAGE_HEIGHT = 480;
 
 	// allocate an image buffer objects
-	//Mat frame_left; // The current frame
-	//Mat frame_left_display; // The current frame with color and drawings
-	Mat frame_left_prev;  // The previous frame
-	Mat frame_left; // Diff between current and prev
-	//Mat frame_left_thresh; // Threshold between diff
+	Mat frame_left; 
+	//Mat frame_left_original; // a copy of the original image, no processing
 	Mat frame_left_first; // The image before the first detected ball movement
-	//Mat frame_left_first_diff; // Diff between current and first
-	//Mat frame_left_first_diff_thresh;
-	//Mat frame_left_and;
+	Mat frame_left_prev;  // The previous frame
+	Mat frame_left_prev_2;
+	Mat frame_left_prev_3;
 
-	//Mat frame_right; // The current frame
-	//Mat frame_right_display; // The current frame with color and drawings
-	Mat frame_right_prev; // The previous frame
-	Mat frame_right; // Diff between current and prev
-	//Mat frame_right_thresh; // Threshold between diff
+	Mat frame_right;
+	//Mat frame_right_original;
 	Mat frame_right_first; // The image before the first detected ball movement
-	//Mat frame_right_first_diff; // Diff between current and first
-	//Mat frame_right_first_diff_thresh;
-	//Mat frame_right_and;
+	Mat frame_right_prev; // The previous frame
+	Mat frame_right_prev_2;
+	Mat frame_right_prev_3;
 
 	// ROI Initial Offset Constants
 	int const ROI_DEFAULT_X_LEFT = 320;
@@ -218,10 +219,17 @@ long QSProcessThreadFunc(CTCSys *QS)
 	// World points are based off of the left camera
 	vector<Point3f> real_ball_path;
 
-	// Change these to move the catcher
-	double move_catcher_y = 0;
-	double move_catcher_x = 0;
+	// Regression analysis Matricies
+	Mat A, B;
+	// Create a 1x3 initial Z array
+	Mat Z(1, 3, DataType<float>::type);
+	Mat Y(1, 1, DataType<float>::type);
+	Mat X(1, 1, DataType<float>::type);
 
+	// Change these to move the catcher
+	double move_catcher_x = OFFSET_X_CAMERA;
+	double move_catcher_y = -OFFSET_Y_CAMERA;
+	
 
 	while (QS->EventEndProcess == FALSE) {
 
@@ -267,6 +275,10 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 
 
+			//QS->IR.ProcBuf[0].copyTo(frame_left_original);
+			//QS->IR.ProcBuf[1].copyTo(frame_right_original);
+
+
 			// Let the corners trigger the ball in flight bool once
 			if(ball_in_flight == false){
 				// Abs diff the whole image. It should be pretty fast
@@ -282,11 +294,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 				threshold(frame_left, frame_left, 10, 256, THRESH_BINARY);
 				threshold(frame_right, frame_right, 10, 256, THRESH_BINARY);
 
-				//
-				//// Triggering mechanism
-				//
-
-				//  Replace corner detection method with a faster triggering method
+				//// TODO: Replace corner detection method with a faster triggering method
 				//// I.e. average all the pixels and trigger if average goes above a certain number
 				double mean_left = mean(frame_left(roi_left)).val[0];
 				double mean_right = mean(frame_right(roi_right)).val[0];
@@ -295,12 +303,21 @@ long QSProcessThreadFunc(CTCSys *QS)
 					putText(QS->IR.ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 					putText(QS->IR.ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
-					frame_left_prev.copyTo(frame_left_first);
-					frame_right_prev.copyTo(frame_right_first);
+					// Copy the the third image previous to be the background 'first' image
+					//frame_left_prev.copyTo(frame_left_first);
+					//frame_right_prev.copyTo(frame_right_first);
+
+					frame_left_prev_3.copyTo(frame_left_first);
+					frame_right_prev_3.copyTo(frame_right_first);
+
 					ball_in_flight = true;
+					X.reshape(0, 1);
+					Y.reshape(0, 1);
+					Z.reshape(0, 1);
+					// Reset regression matricies
 				}
 
-				//// Alternate method
+				//// Detect when ball emerges
 				//goodFeaturesToTrack(frame_left(roi_left), corners_left, 10, 0.01, 10);
 				//goodFeaturesToTrack(frame_right(roi_right), corners_right, 10, 0.01, 10);
 
@@ -313,6 +330,9 @@ long QSProcessThreadFunc(CTCSys *QS)
 			}
 			else {
 				putText(QS->IR.ProcBuf[0], "BALL IN FLIGHT", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+
+				// Ball should only be in flight for around 40 frames
+				hard_reset_counter++;
 
 				// Do processing on images now that the ball is in flight
 				absdiff(frame_left, frame_left_first, frame_left);
@@ -419,30 +439,37 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 					// Print out the real-world coordinates of the ball
 					stringstream real_coordinates;
+					real_coordinates.str("");
+					real_coordinates.clear();
 					real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left[0].x) << ", " << to_string((int)ball_centroid_3d_real_left[0].y) << ", " << to_string((int)ball_centroid_3d_real_left[0].z) << ")";
 					putText(QS->IR.ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
 					// TODO: Why do the coordinates not update??
 
-					////
-					////// Ball Trajectory algorithm
-					////
-					//Point3f real_point = real_ball_path.back();
+					//
+					//// Ball Trajectory algorithm
+					//
+					Point3f real_point = real_ball_path.back();
 
-					//// Regression analysis
-					//Mat X, Y, Z, A, B;
+					X.push_back(real_point.x);
+					Y.push_back(real_point.y);
+					// Create an temp Nx3 matrix
+					Mat Z_temp(1, 3, DataType<float>::type);
+					Z_temp.at<float>(0, 0) = 1;
+					Z_temp.at<float>(0, 1) = real_point.z;
+					Z_temp.at<float>(0, 2) = real_point.z*real_point.z;	
+					Z.push_back(Z_temp);
+					//// Calculate A and B
+					A = (Z.t()*Z).inv() * Z.t() * Y;
+					B = (Z.t()*Z).inv() * Z.t() * X;
 
-					//X.push_back(real_point.x);
-					//Y.push_back(real_point.y);
-					//Z.push_back(Point3f(1,real_point.z, real_point.z*real_point.z));
+					// y = A[0] + A[1]*z + A[2]*z^2, where z is the catcher's z plane
+					move_catcher_y = A.at<double>(0,0) + A.at<double>(1,0) * CATCHER_Z + A.at<double>(2,0) * CATCHER_Z * CATCHER_Z;
+					// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
+					move_catcher_x = B.at<double>(0,0) + B.at<double>(0,0) * CATCHER_Z + B.at<double>(0,0) * CATCHER_Z * CATCHER_Z;
 
-					//// A
-					//A = (Z.t()*Z).inv() * Z.t() * Y;
-					//B = (Z.t()*Z).inv() * Z.t() * X;
-
-					//// y = A[0] + A[1]*z + A[2]*z^2, where z is the catcher's z plane
-					//move_catcher_y = A.at<double>(0,0) + A.at<double>(1,0) * CATCHER_Z + A.at<double>(2,0) * CATCHER_Z * CATCHER_Z;
-					//// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
-					//move_catcher_x = B.at<double>(0,0) + B.at<double>(0,0) * CATCHER_Z + B.at<double>(0,0) * CATCHER_Z * CATCHER_Z;
+					stringstream predicted_coordinates;
+					predicted_coordinates << "(" << to_string((int)move_catcher_x) << ", " << to_string((int)move_catcher_y) << ")";
+					putText(QS->IR.ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
 
 					// TODO: Figure out the center location of the net relative to the left camera
 				}
@@ -452,7 +479,11 @@ long QSProcessThreadFunc(CTCSys *QS)
 				}
 
 				// Reset the ball_in_flight bool after a certain number of frames with nothing detected
-				if(empty_frame_count > EMPTY_FRAME_LIMIT){
+				// Also check for hard reset condition
+				if (empty_frame_count > EMPTY_FRAME_LIMIT || hard_reset_counter > HARD_RESET_LIMIT){
+					hard_reset_counter = 0;
+					empty_frame_count = 0;
+
 					// No ball has been found, so reset
 					ball_in_flight = false;
 					// Reset the roi
@@ -460,9 +491,9 @@ long QSProcessThreadFunc(CTCSys *QS)
 					roi_right = ROI_DEFAULT_RIGHT;
 					// TODO: Do we want the catcher to stay in the same place, or reset to origin?
 					// TODO: Do we want the catcher to start to the right or left?
-					// TODO: Create starting position constants?
-					move_catcher_y = 0;
-					move_catcher_x = 0;
+					// TODO: Create starting position constants
+					move_catcher_x = OFFSET_X_CAMERA;
+					move_catcher_y = -OFFSET_Y_CAMERA;
 				}
 
 			}
@@ -516,7 +547,22 @@ long QSProcessThreadFunc(CTCSys *QS)
 		}
 		BufID = 1 - BufID;
 
+		// Buffer the last 3 or 4 images
+		// Buffer the third to prev image
+		if (!frame_left_prev_2.empty()){
+			frame_left_prev_2.copyTo(frame_left_prev_3);
+			frame_right_prev_2.copyTo(frame_right_prev_3);
+		}
+		// Buffer the second to prev image
+		if (!frame_left_prev.empty()){
+			frame_left_prev.copyTo(frame_left_prev_2);
+			frame_right_prev.copyTo(frame_right_prev_2);
+		}
+
 		// Set previous frame for next loop iteration
+		//frame_left_original.copyTo(frame_left_prev);
+		//frame_right_original.copyTo(frame_right_prev);
+
 		QS->IR.ProcBuf[0].copyTo(frame_left_prev);
 		QS->IR.ProcBuf[1].copyTo(frame_right_prev);
 	}
