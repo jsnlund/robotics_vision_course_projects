@@ -164,11 +164,6 @@ int main(int argc, char const *argv[]) {
 	// Convert ball centroids to real-world coordinates using undistort points
 	vector<Point2f> ball_centroids_left, ball_centroids_left_undistorted, ball_centroids_right, ball_centroids_right_undistorted;
 
-
-	// Create a 3d collection of points for left and right, as well as outputs
-	// Create a 3 channel vector of (x,y,d), where x,y come from the 4 chosen points, and d is the x disparity between the two points
-	vector<Point3f> ball_centroid_3d_left, ball_centroid_3d_right;
-
 	// Real world coordinates of the centroid of the ball
 	// World points are based off of the left camera
 	vector<Point3f> real_ball_path;
@@ -252,7 +247,6 @@ int main(int argc, char const *argv[]) {
 
 			// Let the corners trigger the ball in flight bool once
 			if(ball_in_flight == false){
-				cout << "ball in flight: false" << endl;
 				// Abs diff the whole image. It should be pretty fast
 				// TODO: Use a slightly bigger roi?
 				absdiff(ProcBuf[0], frame_left_prev, frame_left);
@@ -301,7 +295,7 @@ int main(int argc, char const *argv[]) {
 				//}
 			}
 			else {
-				cout << "ball in flight: true" << endl;
+				cout << "ball in flight" << endl;
 
 				putText(ProcBuf[0], "BALL IN FLIGHT", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
@@ -345,6 +339,8 @@ int main(int argc, char const *argv[]) {
 				////
 				//// GET X,Y,Z location and move ROI
 				if(contours_left.size() > 0 && contours_right.size() > 0){
+					cout << "ball found" << endl;
+
 					// We found a ball! Reset idle frame count
 					empty_frame_count = 0;
 					putText(ProcBuf[1], "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
@@ -402,14 +398,26 @@ int main(int argc, char const *argv[]) {
 					float x_right = ball_centroids_right_undistorted[0].x;
 					float y_right = ball_centroids_right_undistorted[0].y;
 					// So disparity = x - x', or left - right
+
+					// Create a 3 channel vector of (x,y,d), where x,y come from the 4 chosen points, and d is the x disparity between the two points
+					// These vectors should only have one element each iteration of the loop
+					vector<Point3f> ball_centroid_3d_left, ball_centroid_3d_right;
 					ball_centroid_3d_left.push_back(Point3f(x_left, y_left, x_left - x_right));
 					ball_centroid_3d_right.push_back(Point3f(x_right, y_right, x_left - x_right));
+					// Make sure that there is only one element in the array!
+					cout << "ball_centroid_3d_left: " << ball_centroid_3d_left << endl;
+					CV_Assert(ball_centroid_3d_left.size() == 1);
 
 					// Choose left points to transform
 					vector<Point3f> ball_centroid_3d_real_left;
 					perspectiveTransform(ball_centroid_3d_left, ball_centroid_3d_real_left, Q);
+
 					// Save the real-world centroid location
 					real_ball_path.push_back(ball_centroid_3d_real_left[0]);
+					// Make sure that there is only one element in the array!
+					cout << "ball_centroid_3d_real_left: " << ball_centroid_3d_real_left << endl;
+					CV_Assert(ball_centroid_3d_real_left.size() == 1);
+
 
 					// Print out the real-world coordinates of the ball
 					stringstream real_coordinates;
