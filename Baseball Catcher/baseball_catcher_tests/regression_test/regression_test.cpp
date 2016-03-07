@@ -232,8 +232,6 @@ int main(int argc, char const *argv[]) {
 			return -1;
 		}
 
-
-
 		//
 		//
 		//  HardWare.cpp loop code
@@ -254,6 +252,7 @@ int main(int argc, char const *argv[]) {
 
 			// Let the corners trigger the ball in flight bool once
 			if(ball_in_flight == false){
+				cout << "ball in flight: false" << endl;
 				// Abs diff the whole image. It should be pretty fast
 				// TODO: Use a slightly bigger roi?
 				absdiff(ProcBuf[0], frame_left_prev, frame_left);
@@ -302,6 +301,8 @@ int main(int argc, char const *argv[]) {
 				//}
 			}
 			else {
+				cout << "ball in flight: true" << endl;
+
 				putText(ProcBuf[0], "BALL IN FLIGHT", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 				// Ball should only be in flight for around 40 frames
@@ -418,6 +419,8 @@ int main(int argc, char const *argv[]) {
 					putText(ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
 					// TODO: Why do the coordinates not update??
 
+					cout << "Before Matrix Math" << endl;
+
 					//
 					//// Ball Trajectory algorithm
 					//
@@ -440,6 +443,7 @@ int main(int argc, char const *argv[]) {
 					// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
 					move_catcher_x = B.at<double>(0,0) + B.at<double>(0,0) * CATCHER_Z + B.at<double>(0,0) * CATCHER_Z * CATCHER_Z;
 
+					cout << "After Matrix Math" << endl;
 					stringstream predicted_coordinates;
 					predicted_coordinates << "(" << to_string((int)move_catcher_x) << ", " << to_string((int)move_catcher_y) << ")";
 					putText(ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
@@ -486,6 +490,26 @@ int main(int argc, char const *argv[]) {
 			imshow("OutBuf1 Left", OutBuf1[0]);
 			imshow("OutBuf1 Right", OutBuf1[1]);
 		}
+
+
+		// Buffer the last 3 or 4 images
+		// Buffer the third to prev image
+		if (!frame_left_prev_2.empty()){
+			frame_left_prev_2.copyTo(frame_left_prev_3);
+			frame_right_prev_2.copyTo(frame_right_prev_3);
+		}
+		// Buffer the second to prev image
+		if (!frame_left_prev.empty()){
+			frame_left_prev.copyTo(frame_left_prev_2);
+			frame_right_prev.copyTo(frame_right_prev_2);
+		}
+
+		// Set previous frame for next loop iteration
+		//frame_left_original.copyTo(frame_left_prev);
+		//frame_right_original.copyTo(frame_right_prev);
+
+		ProcBuf[0].copyTo(frame_left_prev);
+		ProcBuf[1].copyTo(frame_right_prev);
 
 
 		//
