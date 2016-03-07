@@ -487,6 +487,9 @@ int main(int argc, char const *argv[]) {
 					// TODO: Create starting position constants
 					move_catcher_x = OFFSET_X_CAMERA;
 					move_catcher_y = -OFFSET_Y_CAMERA;
+
+					// Reset the real world ball coordinate vector
+					real_ball_path.clear();
 				}
 
 			}
