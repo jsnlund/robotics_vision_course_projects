@@ -20,7 +20,7 @@ int main(int argc, char const *argv[]) {
 
 	// Keyboard codes
 	int const ESC_KEY = 27;
-	int const C_KEY = 27; // Catchball key
+	int const C_KEY = 99; // Catchball key
 	int keypress = 0;
 
 	int const MIN_IMAGE_NUMBER = 1;
@@ -134,6 +134,7 @@ int main(int argc, char const *argv[]) {
 	// NOTE: baseball_params.yaml needs to be in the same directory as HardWare.cpp!
 	if (!baseball_params.isOpened()){
 		cout << "Failed to open baseball_params.yaml..." << endl;
+		return 0;
 	}
 
 	// Left and right camera params
@@ -160,8 +161,7 @@ int main(int argc, char const *argv[]) {
 	baseball_params["pmat_right"] >> pmat_right;
 	baseball_params["q"] >> Q;
 
-	// TODO: Convert ball centroids to real-world coordinates using undistort points
-
+	// Convert ball centroids to real-world coordinates using undistort points
 	vector<Point2f> ball_centroids_left, ball_centroids_left_undistorted, ball_centroids_right, ball_centroids_right_undistorted;
 
 
@@ -190,11 +190,10 @@ int main(int argc, char const *argv[]) {
 	//
 	//
 
-
 	// Load the first image
 	int i = MIN_IMAGE_NUMBER;
-	current_image_file_left << FOLDER << IMAGE_PREFIX_LEFT << setw(2) << setfill('0') << to_string(MIN_IMAGE_NUMBER) << IMAGE_FILE_SUFFIX;
-	current_image_file_right << FOLDER << IMAGE_PREFIX_RIGHT << setw(2) << setfill('0') << to_string(MIN_IMAGE_NUMBER) << IMAGE_FILE_SUFFIX;
+	current_image_file_left << FOLDER << IMAGE_PREFIX_LEFT << setw(2) << setfill('0') << to_string(i) << IMAGE_FILE_SUFFIX;
+	current_image_file_right << FOLDER << IMAGE_PREFIX_RIGHT << setw(2) << setfill('0') << to_string(i) << IMAGE_FILE_SUFFIX;
 	frame_left_prev = imread(current_image_file_left.str(), CV_LOAD_IMAGE_GRAYSCALE);
 	frame_right_prev = imread(current_image_file_right.str(), CV_LOAD_IMAGE_GRAYSCALE);
 
@@ -218,7 +217,7 @@ int main(int argc, char const *argv[]) {
 		ProcBuf[1] = imread(current_image_file_right.str(), CV_LOAD_IMAGE_GRAYSCALE);
 
 		// Exit if no images were grabbed
-		if( frame_left.empty() ) {
+		if( ProcBuf[0].empty() ) {
 			cout <<  "Could not open or find the left image" << std::endl;
 			// Show the image file path
 			cout << "Left Image File: " << current_image_file_left.str() << endl;
@@ -226,7 +225,7 @@ int main(int argc, char const *argv[]) {
 		}
 
 		// Exit if no images were grabbed
-		if( frame_right.empty() ) {
+		if( ProcBuf[1].empty() ) {
 			cout <<  "Could not open or find the right image" << std::endl;
 			// Show the image file path
 			cout << "Right Image File: " << current_image_file_left.str() << endl;
@@ -484,6 +483,8 @@ int main(int argc, char const *argv[]) {
 			Move_Y = (move_catcher_y + OFFSET_Y_CAMERA) * SCALE_Y_CATCHER;
 			cout << "**Moving X to " << Move_X << " and Y to " << Move_Y << "**" << endl;
 			// SetEvent(QS->QSMoveEvent);		// Signal the move event to move catcher. The event will be reset in the move thread.
+			imshow("OutBuf1 Left", OutBuf1[0]);
+			imshow("OutBuf1 Right", OutBuf1[1]);
 		}
 
 
@@ -493,17 +494,9 @@ int main(int argc, char const *argv[]) {
 		//
 		//
 
-
 		// Show the image output for a sanity check
-		imshow("Left", OutBuf1[0]);
-		imshow("Right", OutBuf1[1]);
-
-		// imshow("Left Diff", frame_left_diff);
-		// imshow("Right Diff", frame_right_diff);
-
-		// imshow("Left Threshold", frame_left_thresh);
-		// imshow("Right Threshold", frame_right_thresh);
-
+		imshow("ProcBuf Left", ProcBuf[0]);
+		imshow("ProcBuf Right", ProcBuf[1]);
 
 		// Need this for images to display, or else output windows just show up gray
 		keypress = waitKey(30);
@@ -513,19 +506,9 @@ int main(int argc, char const *argv[]) {
 			catch_ball = !catch_ball;
 		}
 
-
-		// Update prev frames with current frames
-		frame_left.copyTo(frame_left_prev);
-		frame_right.copyTo(frame_right_prev);
-
 		i++;
 		if(i > MAX_IMAGE_NUMBER) {
 			i = MIN_IMAGE_NUMBER;
-			// TODO: When ball gets too close, set ball_in_flight to false so ROI can be reset to the default
-			// Reset roi
-			roi_left = ROI_DEFAULT_LEFT;
-			roi_right = ROI_DEFAULT_RIGHT;
-			ball_in_flight = false;
 		}
 	}
 
