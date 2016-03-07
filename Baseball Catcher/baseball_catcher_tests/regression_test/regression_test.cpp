@@ -250,11 +250,11 @@ int main(int argc, char const *argv[]) {
 				threshold(frame_left, frame_left, 10, 256, THRESH_BINARY);
 				threshold(frame_right, frame_right, 10, 256, THRESH_BINARY);
 
-				//// TODO: Replace corner detection method with a faster triggering method
-				//// I.e. average all the pixels and trigger if average goes above a certain number
+				//// Trigger detection
 				double mean_left = mean(frame_left(roi_left)).val[0];
 				double mean_right = mean(frame_right(roi_right)).val[0];
 
+				// Average all the pixels and trigger if average goes above a certain number
 				if (mean_left >= BALL_EMERGE_MEAN_THRESH && mean_right >= BALL_EMERGE_MEAN_THRESH){
 					// putText(ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 					// putText(ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
@@ -353,22 +353,28 @@ int main(int argc, char const *argv[]) {
 					// recalculate the roi (roi left and right widths and heights should be the same)
 					int x_margin = roi_left.width/2;
 					int y_margin = roi_left.height/2;
+					// Make it so that ROI moves left or right still, even if it stops moving up or down
 					if(
 						ball_centroid_left.x <  IMAGE_WIDTH - x_margin &&
 						ball_centroid_left.x >  x_margin &&
+						ball_centroid_right.x <  IMAGE_WIDTH - x_margin &&
+						ball_centroid_right.x >  x_margin
+					){
+						roi_left.x = ball_centroid_left.x - x_margin;
+						roi_right.x = ball_centroid_right.x - x_margin;
+					}
+
+					// TODO: ROI.y should be tied together for both left and right
+					if(
 						ball_centroid_left.y <  IMAGE_HEIGHT - y_margin &&
 						ball_centroid_left.y >  y_margin &&
-
-						ball_centroid_right.x <  IMAGE_WIDTH - x_margin &&
-						ball_centroid_right.x >  x_margin &&
 						ball_centroid_right.y <  IMAGE_HEIGHT - y_margin &&
 						ball_centroid_right.y >  y_margin
 					){
-						roi_left.x = ball_centroid_left.x - x_margin;
 						roi_left.y = ball_centroid_left.y - y_margin;
-						roi_right.x = ball_centroid_right.x - x_margin;
 						roi_right.y = ball_centroid_right.y - y_margin;
 					}
+
 
 					// Convert centroid points to real worlds 3d points
 					// Save the real 3d coordinates of the left centroid in real_ball_path
@@ -422,13 +428,10 @@ int main(int argc, char const *argv[]) {
 					//// Ball Trajectory algorithm
 					//
 
-					// Regression analysis Matricies
+					// Regression analysis Matrices
 					// Extract the points from a vector in a for loop and create temp matrices
 					// This is way easier to handle than having global matrices
-					Mat A, B;
-					Mat Z;
-					Mat Y;
-					Mat X;
+					Mat A, B, Z, Y, X;
 
 					for (int i = 0; i < real_ball_path.size(); ++i) {
 						X.push_back(real_ball_path[i].x);
