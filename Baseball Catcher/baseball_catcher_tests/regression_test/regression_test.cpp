@@ -1,18 +1,15 @@
 // Testing regression algorithm for Project 3
 //
 
-// #include <opencv2/core.hpp>
-// #include <opencv2/videoio.hpp>
-// #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <iomanip> // For leading zeros
-
 
 using namespace cv;
 using namespace std;
 
 int main(int argc, char const *argv[]) {
+	// TODO: Test with many sets of images
 	String const FOLDER = "12ms6\\";
 	String const IMAGE_PREFIX_LEFT = "12ms6L";
 	String const IMAGE_PREFIX_RIGHT = "12ms6R";
@@ -266,8 +263,8 @@ int main(int argc, char const *argv[]) {
 				double mean_right = mean(frame_right(roi_right)).val[0];
 
 				if (mean_left >= BALL_EMERGE_MEAN_THRESH && mean_right >= BALL_EMERGE_MEAN_THRESH){
-					putText(ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
-					putText(ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+					// putText(ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+					// putText(ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 					// Copy the the third image previous to be the background 'first' image
 					//frame_left_prev.copyTo(frame_left_first);
@@ -360,7 +357,7 @@ int main(int argc, char const *argv[]) {
 					// Draw the centroid of the ball
 					circle(frame_left, ball_centroid_left, 5, Scalar(0,0,0), 1);
 					circle(frame_right, ball_centroid_right, 5, Scalar(0, 0, 0), 1);
-					// recalculate the roi (roi widths and heights should be the same)
+					// recalculate the roi (roi left and right widths and heights should be the same)
 					int x_margin = roi_left.width/2;
 					int y_margin = roi_left.height/2;
 					if(
@@ -476,6 +473,7 @@ int main(int argc, char const *argv[]) {
 				// Reset the ball_in_flight bool after a certain number of frames with nothing detected
 				// Also check for hard reset condition
 				if (empty_frame_count > EMPTY_FRAME_LIMIT || hard_reset_counter > HARD_RESET_LIMIT){
+					cout << "Resetting catcher!" << endl;
 					hard_reset_counter = 0;
 					empty_frame_count = 0;
 
@@ -501,6 +499,7 @@ int main(int argc, char const *argv[]) {
 
 			// This is how you move the catcher.  QS->moveX and QS->moveY (both in inches) must be calculated and set first.
 			// TODO: Are we offsetting in the right direction? Scaling correctly?
+			// TODO: We only want to change the catcher movement if the ball is found, else leave it
 			Move_X = (move_catcher_x - OFFSET_X_CAMERA) * SCALE_X_CATCHER;
 			Move_Y = (move_catcher_y + OFFSET_Y_CAMERA) * SCALE_Y_CATCHER;
 			cout << "**Moving X to " << Move_X << " and Y to " << Move_Y << "**" << endl;
