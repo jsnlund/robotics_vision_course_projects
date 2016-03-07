@@ -120,7 +120,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 	int const IMAGE_HEIGHT = 480;
 
 	// allocate an image buffer objects
-	Mat frame_left; 
+	Mat frame_left;
 	//Mat frame_left_original; // a copy of the original image, no processing
 	Mat frame_left_first; // The image before the first detected ball movement
 	Mat frame_left_prev;  // The previous frame
@@ -210,11 +210,6 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 	vector<Point2f> ball_centroids_left, ball_centroids_left_undistorted, ball_centroids_right, ball_centroids_right_undistorted;
 
-
-	// Create a 3d collection of points for left and right, as well as outputs
-	// Create a 3 channel vector of (x,y,d), where x,y come from the 4 chosen points, and d is the x disparity between the two points
-	vector<Point3f> ball_centroid_3d_left, ball_centroid_3d_right;
-
 	// Real world coordinates of the centroid of the ball
 	// World points are based off of the left camera
 	vector<Point3f> real_ball_path;
@@ -229,7 +224,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 	// Change these to move the catcher
 	double move_catcher_x = OFFSET_X_CAMERA;
 	double move_catcher_y = -OFFSET_Y_CAMERA;
-	
+
 
 	while (QS->EventEndProcess == FALSE) {
 
@@ -427,6 +422,9 @@ long QSProcessThreadFunc(CTCSys *QS)
 					float y_left = ball_centroids_left_undistorted[0].y;
 					float x_right = ball_centroids_right_undistorted[0].x;
 					float y_right = ball_centroids_right_undistorted[0].y;
+
+					// Create a 3 channel vector of (x,y,d), where x,y come from the 4 chosen points, and d is the x disparity between the two points
+					vector<Point3f> ball_centroid_3d_left, ball_centroid_3d_right;
 					// So disparity = x - x', or left - right
 					ball_centroid_3d_left.push_back(Point3f(x_left, y_left, x_left - x_right));
 					ball_centroid_3d_right.push_back(Point3f(x_right, y_right, x_left - x_right));
@@ -456,7 +454,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 					Mat Z_temp(1, 3, DataType<float>::type);
 					Z_temp.at<float>(0, 0) = 1;
 					Z_temp.at<float>(0, 1) = real_point.z;
-					Z_temp.at<float>(0, 2) = real_point.z*real_point.z;	
+					Z_temp.at<float>(0, 2) = real_point.z*real_point.z;
 					Z.push_back(Z_temp);
 					//// Calculate A and B
 					A = (Z.t()*Z).inv() * Z.t() * Y;
