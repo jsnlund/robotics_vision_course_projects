@@ -425,7 +425,6 @@ int main(int argc, char const *argv[]) {
 					real_coordinates.clear();
 					real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left[0].x) << ", " << to_string((int)ball_centroid_3d_real_left[0].y) << ", " << to_string((int)ball_centroid_3d_real_left[0].z) << ")";
 					putText(ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
-					// TODO: Why do the coordinates not update??
 
 					cout << "Before Matrix Math" << endl;
 
@@ -446,14 +445,25 @@ int main(int argc, char const *argv[]) {
 					A = (Z.t()*Z).inv() * Z.t() * Y;
 					B = (Z.t()*Z).inv() * Z.t() * X;
 
+					cout << "A: " << A << endl;
+					cout << "B: " << B << endl;
+
+					cout << "A(0,0): " << A.at<float>(0,0) << endl;
+					cout << "A(1,0): " << A.at<float>(1,0) << endl;
+					cout << "A(2,0): " << A.at<float>(2,0) << endl;
+					cout << "A(0,1): " << A.at<float>(0,1) << endl;
+					cout << "A(0,2): " << A.at<float>(0,2) << endl;
+
+
 					// y = A[0] + A[1]*z + A[2]*z^2, where z is the catcher's z plane
-					move_catcher_y = A.at<double>(0,0) + A.at<double>(1,0) * CATCHER_Z + A.at<double>(2,0) * CATCHER_Z * CATCHER_Z;
+					move_catcher_y = A.at<float>(0,0) + A.at<float>(1,0) * CATCHER_Z + A.at<float>(2,0) * CATCHER_Z * CATCHER_Z;
 					// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
-					move_catcher_x = B.at<double>(0,0) + B.at<double>(0,0) * CATCHER_Z + B.at<double>(0,0) * CATCHER_Z * CATCHER_Z;
+					move_catcher_x = B.at<float>(0,0) + B.at<float>(0,0) * CATCHER_Z + B.at<float>(0,0) * CATCHER_Z * CATCHER_Z;
 
 					cout << "After Matrix Math" << endl;
 					stringstream predicted_coordinates;
 					predicted_coordinates << "(" << to_string((int)move_catcher_x) << ", " << to_string((int)move_catcher_y) << ")";
+					cout << "Predicted Coordinates: " << predicted_coordinates.str() << endl;
 					putText(ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
 
 					// TODO: Figure out the center location of the net relative to the left camera
