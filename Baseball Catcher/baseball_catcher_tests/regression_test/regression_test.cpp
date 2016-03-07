@@ -26,8 +26,20 @@ int main(int argc, char const *argv[]) {
 	int const MIN_IMAGE_NUMBER = 1;
 	int const MAX_IMAGE_NUMBER = 59;
 
+	stringstream current_image_file_left;
+	stringstream current_image_file_right;
+
 	// Simulate the catch call button
 	bool catch_ball = false;
+
+	// Simulate ProcBuf
+	Mat ProcBuf[2];
+	// Simulate OutBuf1
+	Mat OutBuf1[2];
+
+	// Simulate Move vars
+	double Move_X;
+	double Move_Y;
 
 	//
 	//
@@ -121,9 +133,7 @@ int main(int argc, char const *argv[]) {
 	FileStorage baseball_params("baseball_params.yaml", FileStorage::READ);
 	// NOTE: baseball_params.yaml needs to be in the same directory as HardWare.cpp!
 	if (!baseball_params.isOpened()){
-		char ErrorMsg[64];
-		sprintf_s(ErrorMsg, "Failed to open baseball_params.yaml. Make sure it's in the base of BaseballCatcher.");
-		AfxMessageBox(CA2W(ErrorMsg), MB_ICONSTOP);
+		cout << "Failed to open baseball_params.yaml..." << endl;
 	}
 
 	// Left and right camera params
@@ -203,8 +213,9 @@ int main(int argc, char const *argv[]) {
 		current_image_file_right << FOLDER << IMAGE_PREFIX_RIGHT << setw(2) << setfill('0') << to_string(i) << IMAGE_FILE_SUFFIX;
 
 		// Load the image
-		frame_left = imread(current_image_file_left.str(), CV_LOAD_IMAGE_GRAYSCALE);
-		frame_right = imread(current_image_file_right.str(), CV_LOAD_IMAGE_GRAYSCALE);
+		// Simulate ProcBuf
+		ProcBuf[0] = imread(current_image_file_left.str(), CV_LOAD_IMAGE_GRAYSCALE);
+		ProcBuf[1] = imread(current_image_file_right.str(), CV_LOAD_IMAGE_GRAYSCALE);
 
 		// Exit if no images were grabbed
 		if( frame_left.empty() ) {
@@ -235,19 +246,19 @@ int main(int argc, char const *argv[]) {
 			// Need to create child image or small region of interest for processing to exclude background and speed up processing
 			// Mat child = QS->IR.ProcBuf[i](Rect(x, y, width, height));
 
-			QS->IR.ProcBuf[0].copyTo(frame_left);
-			QS->IR.ProcBuf[1].copyTo(frame_right);
+			ProcBuf[0].copyTo(frame_left);
+			ProcBuf[1].copyTo(frame_right);
 
 			// TODO: Keep a copy of the original around
-			//QS->IR.ProcBuf[0].copyTo(frame_left_original);
-			//QS->IR.ProcBuf[1].copyTo(frame_right_original);
+			//ProcBuf[0].copyTo(frame_left_original);
+			//ProcBuf[1].copyTo(frame_right_original);
 
 			// Let the corners trigger the ball in flight bool once
 			if(ball_in_flight == false){
 				// Abs diff the whole image. It should be pretty fast
 				// TODO: Use a slightly bigger roi?
-				absdiff(QS->IR.ProcBuf[0], frame_left_prev, frame_left);
-				absdiff(QS->IR.ProcBuf[1], frame_right_prev, frame_right);
+				absdiff(ProcBuf[0], frame_left_prev, frame_left);
+				absdiff(ProcBuf[1], frame_right_prev, frame_right);
 
 				// Blur an roi
 				GaussianBlur(frame_left(roi_left), frame_left(roi_left), Size(11, 11), 15.0, 15.0);
@@ -263,8 +274,8 @@ int main(int argc, char const *argv[]) {
 				double mean_right = mean(frame_right(roi_right)).val[0];
 
 				if (mean_left >= BALL_EMERGE_MEAN_THRESH && mean_right >= BALL_EMERGE_MEAN_THRESH){
-					putText(QS->IR.ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
-					putText(QS->IR.ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+					putText(ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+					putText(ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 					// Copy the the third image previous to be the background 'first' image
 					//frame_left_prev.copyTo(frame_left_first);
@@ -292,7 +303,7 @@ int main(int argc, char const *argv[]) {
 				//}
 			}
 			else {
-				putText(QS->IR.ProcBuf[0], "BALL IN FLIGHT", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+				putText(ProcBuf[0], "BALL IN FLIGHT", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 				// Ball should only be in flight for around 40 frames
 				hard_reset_counter++;
@@ -336,7 +347,7 @@ int main(int argc, char const *argv[]) {
 				if(contours_left.size() > 0 && contours_right.size() > 0){
 					// We found a ball! Reset idle frame count
 					empty_frame_count = 0;
-					putText(QS->IR.ProcBuf[1], "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+					putText(ProcBuf[1], "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 					// cout << "contours_left[0]: " << contours_left[0] << endl;
 					ball_contour_left = contours_left[0];
@@ -405,7 +416,7 @@ int main(int argc, char const *argv[]) {
 					real_coordinates.str("");
 					real_coordinates.clear();
 					real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left[0].x) << ", " << to_string((int)ball_centroid_3d_real_left[0].y) << ", " << to_string((int)ball_centroid_3d_real_left[0].z) << ")";
-					putText(QS->IR.ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
+					putText(ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
 					// TODO: Why do the coordinates not update??
 
 					//
@@ -432,7 +443,7 @@ int main(int argc, char const *argv[]) {
 
 					stringstream predicted_coordinates;
 					predicted_coordinates << "(" << to_string((int)move_catcher_x) << ", " << to_string((int)move_catcher_y) << ")";
-					putText(QS->IR.ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
+					putText(ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
 
 					// TODO: Figure out the center location of the net relative to the left camera
 				}
@@ -462,16 +473,17 @@ int main(int argc, char const *argv[]) {
 			}
 
 			// Paint resulting frames to the output
-			QS->IR.ProcBuf[0].copyTo(QS->IR.OutBuf1[0]);
-			QS->IR.ProcBuf[1].copyTo(QS->IR.OutBuf1[1]);
-			frame_left(roi_left).copyTo(QS->IR.OutBuf1[0](roi_left));
-			frame_right(roi_right).copyTo(QS->IR.OutBuf1[1](roi_right));
+			ProcBuf[0].copyTo(OutBuf1[0]);
+			ProcBuf[1].copyTo(OutBuf1[1]);
+			frame_left(roi_left).copyTo(OutBuf1[0](roi_left));
+			frame_right(roi_right).copyTo(OutBuf1[1](roi_right));
 
 			// This is how you move the catcher.  QS->moveX and QS->moveY (both in inches) must be calculated and set first.
 			// TODO: Are we offsetting in the right direction? Scaling correctly?
-			QS->Move_X = (move_catcher_x - OFFSET_X_CAMERA) * SCALE_X_CATCHER;
-			QS->Move_Y = (move_catcher_y + OFFSET_Y_CAMERA) * SCALE_Y_CATCHER;
-			SetEvent(QS->QSMoveEvent);		// Signal the move event to move catcher. The event will be reset in the move thread.
+			Move_X = (move_catcher_x - OFFSET_X_CAMERA) * SCALE_X_CATCHER;
+			Move_Y = (move_catcher_y + OFFSET_Y_CAMERA) * SCALE_Y_CATCHER;
+			cout << "**Moving X to " << Move_X << " and Y to " << Move_Y << "**" << endl;
+			// SetEvent(QS->QSMoveEvent);		// Signal the move event to move catcher. The event will be reset in the move thread.
 		}
 
 
@@ -483,8 +495,8 @@ int main(int argc, char const *argv[]) {
 
 
 		// Show the image output for a sanity check
-		imshow("Left", frame_left_display);
-		imshow("Right", frame_right_display);
+		imshow("Left", OutBuf1[0]);
+		imshow("Right", OutBuf1[1]);
 
 		// imshow("Left Diff", frame_left_diff);
 		// imshow("Right Diff", frame_right_diff);
