@@ -42,7 +42,9 @@ int main(int argc, char const *argv[]) {
 	//
 	//  HardWare.cpp init code
 	//
-	//
+
+	// The number of points before allowing the regression algorithm to run and predict points
+	int const MINIMUM_REGRESSION_POINTS = 3;
 
 	// inches below the camera, so add this to
 	double const OFFSET_Y_CAMERA = 22.5;
@@ -304,7 +306,9 @@ int main(int argc, char const *argv[]) {
 				threshold(frame_left(roi_left), frame_left(roi_left), 10, 256, THRESH_BINARY);
 				threshold(frame_right(roi_right), frame_right(roi_right), 10, 256, THRESH_BINARY);
 
-				//// TODO: Ball tracking algorithm
+				//
+				//// Ball tracking algorithm
+				//
 
 				//// Find Contours
 				contours_left.clear();
@@ -451,7 +455,7 @@ int main(int argc, char const *argv[]) {
 
 					//// Calculate A and B
 					// Only perform calculation if we have at least 3 points
-					if(real_ball_path.size() > 3){
+					if(real_ball_path.size() >= MINIMUM_REGRESSION_POINTS){
 						A = (Z.t()*Z).inv() * Z.t() * Y;
 						B = (Z.t()*Z).inv() * Z.t() * X;
 
@@ -461,7 +465,7 @@ int main(int argc, char const *argv[]) {
 						// y = A[0] + A[1]*z + A[2]*z^2, where z is the catcher's z plane
 						move_catcher_y = A.at<float>(0,0) + A.at<float>(1,0) * CATCHER_Z + A.at<float>(2,0) * CATCHER_Z * CATCHER_Z;
 						// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
-						move_catcher_x = B.at<float>(0,0) + B.at<float>(0,0) * CATCHER_Z + B.at<float>(0,0) * CATCHER_Z * CATCHER_Z;
+						move_catcher_x = B.at<float>(0,0) + B.at<float>(1,0) * CATCHER_Z + B.at<float>(2,0) * CATCHER_Z * CATCHER_Z;
 
 						stringstream predicted_coordinates;
 						// Cast coordinates to int so they show up small in text
