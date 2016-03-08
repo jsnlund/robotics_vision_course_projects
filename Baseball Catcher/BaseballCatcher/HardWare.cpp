@@ -381,7 +381,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 					// cout << "right centroid: " << ball_centroid_right << endl;
 					// cout << "drawContours!" << endl;
 
-					float ball_y_diff = (float) fabs(ball_centroid_left.y - ball_centroid_right.y);
+					float ball_y_diff = fabs((float)(ball_centroid_left.y - ball_centroid_right.y));
 					float ball_area_diff = (float) fabs(ball_m_left.m00 - ball_m_right.m00);
 
 					if( ball_y_diff < MAX_DIFF_BALL_Y && ball_area_diff < MAX_DIFF_BALL_AREA){
