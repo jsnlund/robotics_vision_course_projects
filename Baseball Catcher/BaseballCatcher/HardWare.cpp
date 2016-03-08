@@ -93,9 +93,19 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 	// The number of points before allowing the regression algorithm to run and predict points
 	int const MINIMUM_REGRESSION_POINTS = 3;
+	// How different the trigger ROI needs to be to trigger the baseball in flight code
 	double const BALL_EMERGE_MEAN_THRESH = 0.01;
+	// If left and right ball contour exceeds these constants, the data is discarded
 	float const MAX_DIFF_BALL_Y = 10.0f;
 	float const MAX_DIFF_BALL_AREA = 200.0f;
+
+	// TODO: Base off depth or # of frames?
+	// The number of frames to listen to once ball is initially found
+	int const FRAMES_TO_LISTEN = 13;
+	int frames_since_ball_trigger = 0;
+	// Depth of the ball to listen to
+	// Starts around 350, don't listen to less than 100
+	// int const DEPTH_TO_LISTEN = 120;
 
 	// inches below the camera, so add this to
 	double const OFFSET_Y_CAMERA = 22.5;
@@ -306,6 +316,9 @@ long QSProcessThreadFunc(CTCSys *QS)
 					frame_right_prev_3.copyTo(frame_right_first);
 
 					ball_in_flight = true;
+					// Only listen to the next N frames, or for a certain z depth
+					frames_since_ball_trigger = 0;
+
 					// Reset ball path
 					// TODO: Is this the right place to do this?
 					real_ball_path.clear();
@@ -384,7 +397,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 					float ball_y_diff = fabs((float)(ball_centroid_left.y - ball_centroid_right.y));
 					float ball_area_diff = (float) fabs(ball_m_left.m00 - ball_m_right.m00);
 
-					if( ball_y_diff < MAX_DIFF_BALL_Y && ball_area_diff < MAX_DIFF_BALL_AREA){
+					if( ball_y_diff < MAX_DIFF_BALL_Y && ball_area_diff < MAX_DIFF_BALL_AREA && frames_since_ball_trigger <= FRAMES_TO_LISTEN){
 						//drawContours(frame_left, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
 						// Draw the centroid of the ball
 						circle(frame_left, ball_centroid_left, 5, Scalar(0,0,0), 1);
@@ -527,6 +540,8 @@ long QSProcessThreadFunc(CTCSys *QS)
 					move_catcher_y = -OFFSET_Y_CAMERA;
 				}
 
+				// Increment the number of frames since the first frame
+				frames_since_ball_trigger++;
 			}
 
 			// Paint resulting frames to the output

@@ -278,7 +278,7 @@ int main(int argc, char const *argv[]) {
 					frame_right_prev_3.copyTo(frame_right_first);
 
 					ball_in_flight = true;
-					// TODO: Only listen to the next N frames, or for a certain z depth
+					// Only listen to the next N frames, or for a certain z depth
 					frames_since_ball_trigger = 0;
 
 					// Reset data for regression matricies
