@@ -102,6 +102,9 @@ int main(int argc, char const *argv[]) {
 
 	double const BALL_EMERGE_MEAN_THRESH = 0.01;
 
+	float const MAX_DIFF_BALL_Y = 10.0f;
+	float const MAX_DIFF_BALL_AREA = 200.0f;
+
 	// Create Default ROI
 	Rect ROI_DEFAULT_LEFT = Rect(ROI_DEFAULT_X_LEFT, ROI_DEFAULT_Y_LEFT, ROI_DEFAULT_WIDTH_LEFT, ROI_DEFAULT_HEIGHT_LEFT);
 	Rect ROI_DEFAULT_RIGHT = Rect(ROI_DEFAULT_X_RIGHT, ROI_DEFAULT_Y_RIGHT, ROI_DEFAULT_WIDTH_RIGHT, ROI_DEFAULT_HEIGHT_RIGHT);
@@ -331,10 +334,11 @@ int main(int argc, char const *argv[]) {
 				//// cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
 				////         cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
 				////
+
+				// TODO: Make sure that non-ball objects are not counted as well - if area is greater than a certain size
 				//// GET X,Y,Z location and move ROI
 				if(contours_left.size() > 0 && contours_right.size() > 0){
-					cout << "ball found" << endl;
-
+					cout << "contours found" << endl;
 					// We found a ball! Reset idle frame count
 					empty_frame_count = 0;
 					putText(ProcBuf[1], "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
@@ -350,133 +354,145 @@ int main(int argc, char const *argv[]) {
 					ball_centroid_right = Point2f(ball_m_right.m10 / ball_m_right.m00, ball_m_right.m01 / ball_m_right.m00);
 					// cout << "right centroid: " << ball_centroid_right << endl;
 					// cout << "drawContours!" << endl;
-					//drawContours(frame_left, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
-					// Draw the centroid of the ball
-					circle(frame_left, ball_centroid_left, 5, Scalar(0,0,0), 1);
-					circle(frame_right, ball_centroid_right, 5, Scalar(0, 0, 0), 1);
-					// recalculate the roi (roi left and right widths and heights should be the same)
-					int x_margin = roi_left.width/2;
-					int y_margin = roi_left.height/2;
-					// Make it so that ROI moves left or right still, even if it stops moving up or down
-					if(
-						ball_centroid_left.x <  IMAGE_WIDTH - x_margin &&
-						ball_centroid_left.x >  x_margin &&
-						ball_centroid_right.x <  IMAGE_WIDTH - x_margin &&
-						ball_centroid_right.x >  x_margin
-					){
-						roi_left.x = ball_centroid_left.x - x_margin;
-						roi_right.x = ball_centroid_right.x - x_margin;
-					}
+					cout << "Ball Centroid Left: " << ball_centroid_left.y << endl;
+					cout << "Ball Area Left moments: " << ball_m_left.m00 << endl;
+					cout << "Ball Centroid Right: " << ball_centroid_right.y << endl;
+					cout << "Ball Area Right moments: " << ball_m_right.m00 << endl;
 
-					// TODO: ROI.y should be tied together for both left and right
-					if(
-						ball_centroid_left.y <  IMAGE_HEIGHT - y_margin &&
-						ball_centroid_left.y >  y_margin &&
-						ball_centroid_right.y <  IMAGE_HEIGHT - y_margin &&
-						ball_centroid_right.y >  y_margin
-					){
-						roi_left.y = ball_centroid_left.y - y_margin;
-						roi_right.y = ball_centroid_right.y - y_margin;
-					}
+					float ball_y_diff = (float) fabs(ball_centroid_left.y - ball_centroid_right.y);
+					float ball_area_diff = (float) fabs(ball_m_left.m00 - ball_m_right.m00);
+
+					if( ball_y_diff < MAX_DIFF_BALL_Y && ball_area_diff < MAX_DIFF_BALL_AREA){
+						//drawContours(frame_left, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
+						// Draw the centroid of the ball
+						circle(frame_left, ball_centroid_left, 5, Scalar(0,0,0), 1);
+						circle(frame_right, ball_centroid_right, 5, Scalar(0, 0, 0), 1);
+						// recalculate the roi (roi left and right widths and heights should be the same)
+						int x_margin = roi_left.width/2;
+						int y_margin = roi_left.height/2;
+						// Make it so that ROI moves left or right still, even if it stops moving up or down
+						if(
+							ball_centroid_left.x <  IMAGE_WIDTH - x_margin &&
+							ball_centroid_left.x >  x_margin &&
+							ball_centroid_right.x <  IMAGE_WIDTH - x_margin &&
+							ball_centroid_right.x >  x_margin
+						){
+							roi_left.x = ball_centroid_left.x - x_margin;
+							roi_right.x = ball_centroid_right.x - x_margin;
+						}
+
+						if(
+							ball_centroid_left.y <  IMAGE_HEIGHT - y_margin &&
+							ball_centroid_left.y >  y_margin &&
+							ball_centroid_right.y <  IMAGE_HEIGHT - y_margin &&
+							ball_centroid_right.y >  y_margin
+						){
+							roi_left.y = ball_centroid_left.y - y_margin;
+							roi_right.y = ball_centroid_right.y - y_margin;
+						}
+
+						// Convert centroid points to real worlds 3d points
+						// Save the real 3d coordinates of the left centroid in real_ball_path
+						vector<Point2f> ball_centroids_left_vec;
+						ball_centroids_left_vec.push_back(ball_centroid_left);
+
+						vector<Point2f> ball_centroids_right_vec;
+						ball_centroids_right_vec.push_back(ball_centroid_right);
+
+						vector<Point2f> ball_centroids_left_undistorted, ball_centroids_right_undistorted;
+
+						undistortPoints(ball_centroids_left_vec, ball_centroids_left_undistorted, camera_matrix_left, dist_coeffs_left, rmat_left, pmat_left);
+						undistortPoints(ball_centroids_right_vec, ball_centroids_right_undistorted, camera_matrix_right, dist_coeffs_right, rmat_right, pmat_right);
+
+						float x_left = ball_centroids_left_undistorted[0].x;
+						float y_left = ball_centroids_left_undistorted[0].y;
+						float x_right = ball_centroids_right_undistorted[0].x;
+						float y_right = ball_centroids_right_undistorted[0].y;
+						// So disparity = x - x', or left - right
+
+						// Create a 3 channel vector of (x,y,d), where x,y come from the 4 chosen points, and d is the x disparity between the two points
+						// These vectors should only have one element each iteration of the loop
+						vector<Point3f> ball_centroid_3d_left, ball_centroid_3d_right;
+						ball_centroid_3d_left.push_back(Point3f(x_left, y_left, x_left - x_right));
+						ball_centroid_3d_right.push_back(Point3f(x_right, y_right, x_left - x_right));
+						// Make sure that there is only one element in the array!
+						// cout << "ball_centroid_3d_left: " << ball_centroid_3d_left << endl;
+						CV_Assert(ball_centroid_3d_left.size() == 1);
+
+						// Choose left points to transform
+						vector<Point3f> ball_centroid_3d_real_left;
+						perspectiveTransform(ball_centroid_3d_left, ball_centroid_3d_real_left, Q);
+
+						// Save the real-world centroid location
+						real_ball_path.push_back(ball_centroid_3d_real_left[0]);
+						// Make sure that there is only one element in the array!
+						// cout << "ball_centroid_3d_real_left: " << ball_centroid_3d_real_left << endl;
+						CV_Assert(ball_centroid_3d_real_left.size() == 1);
 
 
-					// Convert centroid points to real worlds 3d points
-					// Save the real 3d coordinates of the left centroid in real_ball_path
-					vector<Point2f> ball_centroids_left_vec;
-					ball_centroids_left_vec.push_back(ball_centroid_left);
+						// Print out the real-world coordinates of the ball
+						stringstream real_coordinates;
+						real_coordinates.str("");
+						real_coordinates.clear();
+						real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left[0].x) << ", " << to_string((int)ball_centroid_3d_real_left[0].y) << ", " << to_string((int)ball_centroid_3d_real_left[0].z) << ")";
+						putText(ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
 
-					vector<Point2f> ball_centroids_right_vec;
-					ball_centroids_right_vec.push_back(ball_centroid_right);
+						cout << "Before Matrix Math" << endl;
 
-					vector<Point2f> ball_centroids_left_undistorted, ball_centroids_right_undistorted;
+						//
+						//// Ball Trajectory algorithm
+						//
 
-					undistortPoints(ball_centroids_left_vec, ball_centroids_left_undistorted, camera_matrix_left, dist_coeffs_left, rmat_left, pmat_left);
-					undistortPoints(ball_centroids_right_vec, ball_centroids_right_undistorted, camera_matrix_right, dist_coeffs_right, rmat_right, pmat_right);
+						// Regression analysis Matrices
+						// Extract the points from a vector in a for loop and create temp matrices
+						// This is way easier to handle than having global matrices
+						Mat A, B, Z, Y, X;
 
-					float x_left = ball_centroids_left_undistorted[0].x;
-					float y_left = ball_centroids_left_undistorted[0].y;
-					float x_right = ball_centroids_right_undistorted[0].x;
-					float y_right = ball_centroids_right_undistorted[0].y;
-					// So disparity = x - x', or left - right
+						for (int i = 0; i < real_ball_path.size(); ++i) {
+							X.push_back(real_ball_path[i].x);
+							Y.push_back(real_ball_path[i].y);
+							// Create an temp 1x3 matrix
+							Mat Z_row(1, 3, CV_32F);
+							Z_row.at<float>(0, 0) = 1;
+							Z_row.at<float>(0, 1) = real_ball_path[i].z;
+							Z_row.at<float>(0, 2) = real_ball_path[i].z*real_ball_path[i].z;
+							// cout << "Z_row: " << Z_row << endl;
+							Z.push_back(Z_row);
+						}
 
-					// Create a 3 channel vector of (x,y,d), where x,y come from the 4 chosen points, and d is the x disparity between the two points
-					// These vectors should only have one element each iteration of the loop
-					vector<Point3f> ball_centroid_3d_left, ball_centroid_3d_right;
-					ball_centroid_3d_left.push_back(Point3f(x_left, y_left, x_left - x_right));
-					ball_centroid_3d_right.push_back(Point3f(x_right, y_right, x_left - x_right));
-					// Make sure that there is only one element in the array!
-					// cout << "ball_centroid_3d_left: " << ball_centroid_3d_left << endl;
-					CV_Assert(ball_centroid_3d_left.size() == 1);
+						// cout << "X: " << X << endl;
+						// cout << "Y: " << Y << endl;
+						// cout << "Z: " << Z << endl;
 
-					// Choose left points to transform
-					vector<Point3f> ball_centroid_3d_real_left;
-					perspectiveTransform(ball_centroid_3d_left, ball_centroid_3d_real_left, Q);
+						//// Calculate A and B
+						// Only perform calculation if we have at least 3 points
+						if(real_ball_path.size() >= MINIMUM_REGRESSION_POINTS){
+							A = (Z.t()*Z).inv() * Z.t() * Y;
+							B = (Z.t()*Z).inv() * Z.t() * X;
 
-					// Save the real-world centroid location
-					real_ball_path.push_back(ball_centroid_3d_real_left[0]);
-					// Make sure that there is only one element in the array!
-					// cout << "ball_centroid_3d_real_left: " << ball_centroid_3d_real_left << endl;
-					CV_Assert(ball_centroid_3d_real_left.size() == 1);
+							// cout << "A: " << A << endl;
+							// cout << "B: " << B << endl;
 
+							// y = A[0] + A[1]*z + A[2]*z^2, where z is the catcher's z plane
+							move_catcher_y = A.at<float>(0,0) + A.at<float>(1,0) * CATCHER_Z + A.at<float>(2,0) * CATCHER_Z * CATCHER_Z;
+							// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
+							move_catcher_x = B.at<float>(0,0) + B.at<float>(1,0) * CATCHER_Z + B.at<float>(2,0) * CATCHER_Z * CATCHER_Z;
 
-					// Print out the real-world coordinates of the ball
-					stringstream real_coordinates;
-					real_coordinates.str("");
-					real_coordinates.clear();
-					real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left[0].x) << ", " << to_string((int)ball_centroid_3d_real_left[0].y) << ", " << to_string((int)ball_centroid_3d_real_left[0].z) << ")";
-					putText(ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
+							stringstream predicted_coordinates;
+							// Cast coordinates to int so they show up small in text
+							predicted_coordinates << "(" << to_string((int)move_catcher_x) << ", " << to_string((int)move_catcher_y) << ")";
+							cout << "Predicted Coordinates: " << predicted_coordinates.str() << endl;
+							putText(ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
+						}
+						else {
+							cout << "Not enough real-world coordinates to do regression on" << endl;
+						}
 
-					cout << "Before Matrix Math" << endl;
-
-					//
-					//// Ball Trajectory algorithm
-					//
-
-					// Regression analysis Matrices
-					// Extract the points from a vector in a for loop and create temp matrices
-					// This is way easier to handle than having global matrices
-					Mat A, B, Z, Y, X;
-
-					for (int i = 0; i < real_ball_path.size(); ++i) {
-						X.push_back(real_ball_path[i].x);
-						Y.push_back(real_ball_path[i].y);
-						// Create an temp 1x3 matrix
-						Mat Z_row(1, 3, CV_32F);
-						Z_row.at<float>(0, 0) = 1;
-						Z_row.at<float>(0, 1) = real_ball_path[i].z;
-						Z_row.at<float>(0, 2) = real_ball_path[i].z*real_ball_path[i].z;
-						// cout << "Z_row: " << Z_row << endl;
-						Z.push_back(Z_row);
-					}
-
-					// cout << "X: " << X << endl;
-					// cout << "Y: " << Y << endl;
-					// cout << "Z: " << Z << endl;
-
-					//// Calculate A and B
-					// Only perform calculation if we have at least 3 points
-					if(real_ball_path.size() >= MINIMUM_REGRESSION_POINTS){
-						A = (Z.t()*Z).inv() * Z.t() * Y;
-						B = (Z.t()*Z).inv() * Z.t() * X;
-
-						// cout << "A: " << A << endl;
-						// cout << "B: " << B << endl;
-
-						// y = A[0] + A[1]*z + A[2]*z^2, where z is the catcher's z plane
-						move_catcher_y = A.at<float>(0,0) + A.at<float>(1,0) * CATCHER_Z + A.at<float>(2,0) * CATCHER_Z * CATCHER_Z;
-						// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
-						move_catcher_x = B.at<float>(0,0) + B.at<float>(1,0) * CATCHER_Z + B.at<float>(2,0) * CATCHER_Z * CATCHER_Z;
-
-						stringstream predicted_coordinates;
-						// Cast coordinates to int so they show up small in text
-						predicted_coordinates << "(" << to_string((int)move_catcher_x) << ", " << to_string((int)move_catcher_y) << ")";
-						cout << "Predicted Coordinates: " << predicted_coordinates.str() << endl;
-						putText(ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
 					}
 					else {
-						cout << "Not enough real-world coordinates to do regression on" << endl;
+						cout << "Ball centroid ys or areas are not the same!! Throw out this data point" << endl;
+						cout << "Ball centroid areas are not the same!! Throw out this data point" << endl;
 					}
-
 					// TODO: Figure out the center location of the net relative to the left camera
 				}
 				else {
@@ -554,7 +570,8 @@ int main(int argc, char const *argv[]) {
 		imshow("ProcBuf Right", ProcBuf[1]);
 
 		// Need this for images to display, or else output windows just show up gray
-		keypress = waitKey(30);
+		// keypress = waitKey(30);
+		keypress = waitKey(800);
 
 		// Simulate the catch ball button - toggle it
 		if(keypress == C_KEY) {
