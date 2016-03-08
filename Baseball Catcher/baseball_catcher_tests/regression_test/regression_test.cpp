@@ -45,9 +45,19 @@ int main(int argc, char const *argv[]) {
 
 	// The number of points before allowing the regression algorithm to run and predict points
 	int const MINIMUM_REGRESSION_POINTS = 3;
+	// How different the ROI needs to be to trigger the baseball in flight code
 	double const BALL_EMERGE_MEAN_THRESH = 0.01;
+	// If left and right ball contour exceeds these constants, the data is discarded
 	float const MAX_DIFF_BALL_Y = 10.0f;
 	float const MAX_DIFF_BALL_AREA = 200.0f;
+
+	// TODO: Base off depth or # of frames?
+	// The number of frames to listen to once ball is initially found
+	int const FRAMES_TO_LISTEN = 13;
+	int frames_since_ball_trigger = 0;
+	// Depth of the ball to listen to
+	// Starts around 350, don't listen to less than 100
+	// int const DEPTH_TO_LISTEN = 120;
 
 	// inches below the camera, so add this to
 	double const OFFSET_Y_CAMERA = 22.5;
@@ -268,10 +278,13 @@ int main(int argc, char const *argv[]) {
 					frame_right_prev_3.copyTo(frame_right_first);
 
 					ball_in_flight = true;
+					// TODO: Only listen to the next N frames, or for a certain z depth
+					frames_since_ball_trigger = 0;
 
 					// Reset data for regression matricies
 					// TODO: Is this the right place to do this?
 					real_ball_path.clear();
+
 				}
 
 				//// Detect when ball emerges
@@ -331,13 +344,12 @@ int main(int argc, char const *argv[]) {
 				////         cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
 				////
 
-				// TODO: Make sure that non-ball objects are not counted as well - if area is greater than a certain size
+				// Make sure that non-ball objects are not counted as well - if area is greater than a certain size
 				//// GET X,Y,Z location and move ROI
 				if(contours_left.size() > 0 && contours_right.size() > 0){
 					cout << "contours found" << endl;
 					// We found a ball! Reset idle frame count
 					empty_frame_count = 0;
-					putText(ProcBuf[1], "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 					// cout << "contours_left[0]: " << contours_left[0] << endl;
 					ball_contour_left = contours_left[0];
@@ -358,7 +370,8 @@ int main(int argc, char const *argv[]) {
 					float ball_y_diff = (float) fabs(ball_centroid_left.y - ball_centroid_right.y);
 					float ball_area_diff = (float) fabs(ball_m_left.m00 - ball_m_right.m00);
 
-					if( ball_y_diff < MAX_DIFF_BALL_Y && ball_area_diff < MAX_DIFF_BALL_AREA){
+					if( ball_y_diff <= MAX_DIFF_BALL_Y && ball_area_diff <= MAX_DIFF_BALL_AREA && frames_since_ball_trigger <= FRAMES_TO_LISTEN){
+						putText(ProcBuf[1], "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 						//drawContours(frame_left, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
 						// Draw the centroid of the ball
 						circle(frame_left, ball_centroid_left, 5, Scalar(0,0,0), 1);
@@ -425,6 +438,7 @@ int main(int argc, char const *argv[]) {
 						// cout << "ball_centroid_3d_real_left: " << ball_centroid_3d_real_left << endl;
 						CV_Assert(ball_centroid_3d_real_left.size() == 1);
 
+						cout << "Real Ball Path Point: " << real_ball_path << endl;
 
 						// Print out the real-world coordinates of the ball
 						stringstream real_coordinates;
@@ -486,8 +500,7 @@ int main(int argc, char const *argv[]) {
 
 					}
 					else {
-						cout << "Ball centroid ys or areas are not the same!! Throw out this data point" << endl;
-						cout << "Ball centroid areas are not the same!! Throw out this data point" << endl;
+						cout << "Ball centroid ys or areas are not the same, or max frame count reached. Throw out this data point" << endl;
 					}
 					// TODO: Figure out the center location of the net relative to the left camera
 				}
@@ -515,6 +528,8 @@ int main(int argc, char const *argv[]) {
 					move_catcher_y = -OFFSET_Y_CAMERA;
 				}
 
+				// Increment the number of frames since the first frame
+				frames_since_ball_trigger++;
 			}
 
 			// Paint resulting frames to the output
