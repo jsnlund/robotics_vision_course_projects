@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <iomanip> // For leading zeros
+#include <fstream>
 
 using namespace cv;
 using namespace std;
@@ -105,6 +106,10 @@ int main(int argc, char const *argv[]) {
 	// Fields: x, y, width, height
 	Rect roi_left = ROI_DEFAULT_LEFT;
 	Rect roi_right = ROI_DEFAULT_RIGHT;
+
+	ofstream csv_output;
+	csv_output.open ("catcher_output.txt");
+
 
 	// allocate an image buffer objects
 	Mat frame_left;
@@ -480,6 +485,9 @@ int main(int argc, char const *argv[]) {
 							A = (Z.t()*Z).inv() * Z.t() * Y;
 							B = (Z.t()*Z).inv() * Z.t() * X;
 
+							csv_output << "A: " << A << endl;
+							csv_output << "B: " << B << endl;
+
 							// cout << "A: " << A << endl;
 							// cout << "B: " << B << endl;
 
@@ -526,6 +534,10 @@ int main(int argc, char const *argv[]) {
 					// TODO: Create starting position constants
 					move_catcher_x = OFFSET_X_CAMERA;
 					move_catcher_y = -OFFSET_Y_CAMERA;
+
+					// Write output to file in csv format
+					csv_output << "real_ball_path: " << real_ball_path << endl;
+					csv_output.close();
 				}
 
 				// Increment the number of frames since the first frame
