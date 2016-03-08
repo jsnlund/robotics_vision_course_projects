@@ -45,6 +45,9 @@ int main(int argc, char const *argv[]) {
 
 	// The number of points before allowing the regression algorithm to run and predict points
 	int const MINIMUM_REGRESSION_POINTS = 3;
+	double const BALL_EMERGE_MEAN_THRESH = 0.01;
+	float const MAX_DIFF_BALL_Y = 10.0f;
+	float const MAX_DIFF_BALL_AREA = 200.0f;
 
 	// inches below the camera, so add this to
 	double const OFFSET_Y_CAMERA = 22.5;
@@ -70,9 +73,28 @@ int main(int argc, char const *argv[]) {
 	int const HARD_RESET_LIMIT = 100;
 	int hard_reset_counter = 0;
 
-
 	int const IMAGE_WIDTH = 640;
 	int const IMAGE_HEIGHT = 480;
+
+	// ROI Initial Offset Constants
+	int const ROI_DEFAULT_X_LEFT = 320;
+	int const ROI_DEFAULT_Y_LEFT = 60;
+	int const ROI_DEFAULT_WIDTH_LEFT = 100;
+	int const ROI_DEFAULT_HEIGHT_LEFT = 100;
+
+	int const ROI_DEFAULT_X_RIGHT = 235;
+	int const ROI_DEFAULT_Y_RIGHT = 55;
+	int const ROI_DEFAULT_WIDTH_RIGHT = ROI_DEFAULT_WIDTH_LEFT;
+	int const ROI_DEFAULT_HEIGHT_RIGHT = ROI_DEFAULT_HEIGHT_LEFT;
+
+	// Create Default ROI
+	Rect ROI_DEFAULT_LEFT = Rect(ROI_DEFAULT_X_LEFT, ROI_DEFAULT_Y_LEFT, ROI_DEFAULT_WIDTH_LEFT, ROI_DEFAULT_HEIGHT_LEFT);
+	Rect ROI_DEFAULT_RIGHT = Rect(ROI_DEFAULT_X_RIGHT, ROI_DEFAULT_Y_RIGHT, ROI_DEFAULT_WIDTH_RIGHT, ROI_DEFAULT_HEIGHT_RIGHT);
+
+	// Dynamic ROIs
+	// Fields: x, y, width, height
+	Rect roi_left = ROI_DEFAULT_LEFT;
+	Rect roi_right = ROI_DEFAULT_RIGHT;
 
 	// allocate an image buffer objects
 	Mat frame_left;
@@ -88,32 +110,6 @@ int main(int argc, char const *argv[]) {
 	Mat frame_right_prev; // The previous frame
 	Mat frame_right_prev_2;
 	Mat frame_right_prev_3;
-
-	// ROI Initial Offset Constants
-	int const ROI_DEFAULT_X_LEFT = 320;
-	int const ROI_DEFAULT_Y_LEFT = 60;
-	int const ROI_DEFAULT_WIDTH_LEFT = 100;
-	int const ROI_DEFAULT_HEIGHT_LEFT = 100;
-
-	int const ROI_DEFAULT_X_RIGHT = 235;
-	int const ROI_DEFAULT_Y_RIGHT = 55;
-	int const ROI_DEFAULT_WIDTH_RIGHT = ROI_DEFAULT_WIDTH_LEFT;
-	int const ROI_DEFAULT_HEIGHT_RIGHT = ROI_DEFAULT_HEIGHT_LEFT;
-
-	double const BALL_EMERGE_MEAN_THRESH = 0.01;
-
-	float const MAX_DIFF_BALL_Y = 10.0f;
-	float const MAX_DIFF_BALL_AREA = 200.0f;
-
-	// Create Default ROI
-	Rect ROI_DEFAULT_LEFT = Rect(ROI_DEFAULT_X_LEFT, ROI_DEFAULT_Y_LEFT, ROI_DEFAULT_WIDTH_LEFT, ROI_DEFAULT_HEIGHT_LEFT);
-	Rect ROI_DEFAULT_RIGHT = Rect(ROI_DEFAULT_X_RIGHT, ROI_DEFAULT_Y_RIGHT, ROI_DEFAULT_WIDTH_RIGHT, ROI_DEFAULT_HEIGHT_RIGHT);
-
-	// Dynamic ROIs
-	// Fields: x, y, width, height
-	Rect roi_left = ROI_DEFAULT_LEFT;
-	Rect roi_right = ROI_DEFAULT_RIGHT;
-
 	// When activity is generated in the initial ROI, trigger ball_in_flight bool
 	// Or maybe when width of ball is too great - i.e. when too close
 	bool ball_in_flight = false;
