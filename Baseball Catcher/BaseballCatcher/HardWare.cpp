@@ -91,6 +91,9 @@ long QSProcessThreadFunc(CTCSys *QS)
 	//
 
 
+	// The number of points before allowing the regression algorithm to run and predict points
+	int const MINIMUM_REGRESSION_POINTS = 3;
+
 	// inches below the camera, so add this to
 	double const OFFSET_Y_CAMERA = 22.5;
 	// inches
@@ -176,6 +179,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 	// Load camera params from a file
 	FileStorage baseball_params("baseball_params.yaml", FileStorage::READ);
 	// NOTE: baseball_params.yaml needs to be in the same directory as HardWare.cpp!
+	CV_Assert(baseball_params.isOpened());
 	if (!baseball_params.isOpened()){
 		char ErrorMsg[64];
 		sprintf_s(ErrorMsg, "Failed to open baseball_params.yaml. Make sure it's in the base of BaseballCatcher.");
@@ -206,20 +210,13 @@ long QSProcessThreadFunc(CTCSys *QS)
 	baseball_params["pmat_right"] >> pmat_right;
 	baseball_params["q"] >> Q;
 
-	// TODO: Convert ball centroids to real-world coordinates using undistort points
+	// Convert ball centroids to real-world coordinates using undistort points
 
 	vector<Point2f> ball_centroids_left, ball_centroids_left_undistorted, ball_centroids_right, ball_centroids_right_undistorted;
 
 	// Real world coordinates of the centroid of the ball
 	// World points are based off of the left camera
 	vector<Point3f> real_ball_path;
-
-	// Regression analysis Matricies
-	Mat A, B;
-	// Create a 1x3 initial Z array
-	Mat Z(1, 3, DataType<float>::type);
-	Mat Y(1, 1, DataType<float>::type);
-	Mat X(1, 1, DataType<float>::type);
 
 	// Change these to move the catcher
 	double move_catcher_x = OFFSET_X_CAMERA;
@@ -269,7 +266,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 			QS->IR.ProcBuf[1].copyTo(frame_right);
 
 
-
+			// TODO: Keep a copy of the original around
 			//QS->IR.ProcBuf[0].copyTo(frame_left_original);
 			//QS->IR.ProcBuf[1].copyTo(frame_right_original);
 
@@ -289,14 +286,14 @@ long QSProcessThreadFunc(CTCSys *QS)
 				threshold(frame_left, frame_left, 10, 256, THRESH_BINARY);
 				threshold(frame_right, frame_right, 10, 256, THRESH_BINARY);
 
-				//// TODO: Replace corner detection method with a faster triggering method
-				//// I.e. average all the pixels and trigger if average goes above a certain number
+				//// Trigger detection
 				double mean_left = mean(frame_left(roi_left)).val[0];
 				double mean_right = mean(frame_right(roi_right)).val[0];
 
+				//// Average all the pixels and trigger if average goes above a certain number
 				if (mean_left >= BALL_EMERGE_MEAN_THRESH && mean_right >= BALL_EMERGE_MEAN_THRESH){
-					putText(QS->IR.ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
-					putText(QS->IR.ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+					// putText(QS->IR.ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+					// putText(QS->IR.ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 					// Copy the the third image previous to be the background 'first' image
 					//frame_left_prev.copyTo(frame_left_first);
@@ -306,10 +303,9 @@ long QSProcessThreadFunc(CTCSys *QS)
 					frame_right_prev_3.copyTo(frame_right_first);
 
 					ball_in_flight = true;
-					X.reshape(0, 1);
-					Y.reshape(0, 1);
-					Z.reshape(0, 1);
-					// Reset regression matricies
+					// Reset ball path
+					// TODO: Is this the right place to do this?
+					real_ball_path.clear();
 				}
 
 				//// Detect when ball emerges
@@ -388,20 +384,25 @@ long QSProcessThreadFunc(CTCSys *QS)
 					// recalculate the roi (roi widths and heights should be the same)
 					int x_margin = roi_left.width/2;
 					int y_margin = roi_left.height/2;
+					// Make it so that ROI moves left or right still, even if it stops moving up or down
 					if(
 						ball_centroid_left.x <  IMAGE_WIDTH - x_margin &&
 						ball_centroid_left.x >  x_margin &&
+						ball_centroid_right.x <  IMAGE_WIDTH - x_margin &&
+						ball_centroid_right.x >  x_margin
+					){
+						roi_left.x = ball_centroid_left.x - x_margin;
+						roi_right.x = ball_centroid_right.x - x_margin;
+					}
+
+					// TODO: ROI.y should be tied together for both left and right
+					if(
 						ball_centroid_left.y <  IMAGE_HEIGHT - y_margin &&
 						ball_centroid_left.y >  y_margin &&
-
-						ball_centroid_right.x <  IMAGE_WIDTH - x_margin &&
-						ball_centroid_right.x >  x_margin &&
 						ball_centroid_right.y <  IMAGE_HEIGHT - y_margin &&
 						ball_centroid_right.y >  y_margin
 					){
-						roi_left.x = ball_centroid_left.x - x_margin;
 						roi_left.y = ball_centroid_left.y - y_margin;
-						roi_right.x = ball_centroid_right.x - x_margin;
 						roi_right.y = ball_centroid_right.y - y_margin;
 					}
 
@@ -424,16 +425,18 @@ long QSProcessThreadFunc(CTCSys *QS)
 					float y_right = ball_centroids_right_undistorted[0].y;
 
 					// Create a 3 channel vector of (x,y,d), where x,y come from the 4 chosen points, and d is the x disparity between the two points
+					// These vectors should only have one element each iteration of the loop
 					vector<Point3f> ball_centroid_3d_left, ball_centroid_3d_right;
 					// So disparity = x - x', or left - right
 					ball_centroid_3d_left.push_back(Point3f(x_left, y_left, x_left - x_right));
 					ball_centroid_3d_right.push_back(Point3f(x_right, y_right, x_left - x_right));
-
+					CV_Assert(ball_centroid_3d_left.size() == 1);
 					// Choose left points to transform
 					vector<Point3f> ball_centroid_3d_real_left;
 					perspectiveTransform(ball_centroid_3d_left, ball_centroid_3d_real_left, Q);
 					// Save the real-world centroid location
 					real_ball_path.push_back(ball_centroid_3d_real_left[0]);
+					CV_Assert(ball_centroid_3d_real_left.size() == 1);
 
 					// Print out the real-world coordinates of the ball
 					stringstream real_coordinates;
@@ -441,33 +444,50 @@ long QSProcessThreadFunc(CTCSys *QS)
 					real_coordinates.clear();
 					real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left[0].x) << ", " << to_string((int)ball_centroid_3d_real_left[0].y) << ", " << to_string((int)ball_centroid_3d_real_left[0].z) << ")";
 					putText(QS->IR.ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
-					// TODO: Why do the coordinates not update??
 
 					//
 					//// Ball Trajectory algorithm
 					//
-					Point3f real_point = real_ball_path.back();
 
-					X.push_back(real_point.x);
-					Y.push_back(real_point.y);
-					// Create an temp Nx3 matrix
-					Mat Z_temp(1, 3, DataType<float>::type);
-					Z_temp.at<float>(0, 0) = 1;
-					Z_temp.at<float>(0, 1) = real_point.z;
-					Z_temp.at<float>(0, 2) = real_point.z*real_point.z;
-					Z.push_back(Z_temp);
-					//// Calculate A and B
-					A = (Z.t()*Z).inv() * Z.t() * Y;
-					B = (Z.t()*Z).inv() * Z.t() * X;
+					// Regression analysis Matrices
+					// Extract the points from a vector in a for loop and create temp matrices
+					// This is way easier to handle than having global matrices
+					Mat A, B, Z, Y, X;
 
-					// y = A[0] + A[1]*z + A[2]*z^2, where z is the catcher's z plane
-					move_catcher_y = A.at<double>(0,0) + A.at<double>(1,0) * CATCHER_Z + A.at<double>(2,0) * CATCHER_Z * CATCHER_Z;
-					// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
-					move_catcher_x = B.at<double>(0,0) + B.at<double>(0,0) * CATCHER_Z + B.at<double>(0,0) * CATCHER_Z * CATCHER_Z;
+					for (int i = 0; i < real_ball_path.size(); ++i) {
+						X.push_back(real_ball_path[i].x);
+						Y.push_back(real_ball_path[i].y);
+						// Create an temp 1x3 matrix
+						Mat Z_row(1, 3, CV_32F);
+						Z_row.at<float>(0, 0) = 1;
+						Z_row.at<float>(0, 1) = real_ball_path[i].z;
+						Z_row.at<float>(0, 2) = real_ball_path[i].z*real_ball_path[i].z;
+						// cout << "Z_row: " << Z_row << endl;
+						Z.push_back(Z_row);
+					}
 
-					stringstream predicted_coordinates;
-					predicted_coordinates << "(" << to_string((int)move_catcher_x) << ", " << to_string((int)move_catcher_y) << ")";
-					putText(QS->IR.ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
+					// Only perform calculation if we have at least 3 points
+					if(real_ball_path.size() >= MINIMUM_REGRESSION_POINTS){
+						A = (Z.t()*Z).inv() * Z.t() * Y;
+						B = (Z.t()*Z).inv() * Z.t() * X;
+
+						// cout << "A: " << A << endl;
+						// cout << "B: " << B << endl;
+
+						// y = A[0] + A[1]*z + A[2]*z^2, where z is the catcher's z plane
+						move_catcher_y = A.at<float>(0,0) + A.at<float>(1,0) * CATCHER_Z + A.at<float>(2,0) * CATCHER_Z * CATCHER_Z;
+						// x = B[0] + B[1]*z + B[2]*z^2, where z is the catcher's z plane
+						move_catcher_x = B.at<float>(0,0) + B.at<float>(1,0) * CATCHER_Z + B.at<float>(2,0) * CATCHER_Z * CATCHER_Z;
+
+						stringstream predicted_coordinates;
+						// Cast coordinates to int so they show up small in text
+						predicted_coordinates << "(" << to_string((int)move_catcher_x) << ", " << to_string((int)move_catcher_y) << ")";
+						cout << "Predicted Coordinates: " << predicted_coordinates.str() << endl;
+						putText(QS->IR.ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
+					}
+					else {
+						// cout << "Not enough real-world coordinates to do regression on" << endl;
+					}
 
 					// TODO: Figure out the center location of the net relative to the left camera
 				}
