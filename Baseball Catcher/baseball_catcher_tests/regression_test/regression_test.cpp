@@ -107,8 +107,9 @@ int main(int argc, char const *argv[]) {
 	Rect roi_left = ROI_DEFAULT_LEFT;
 	Rect roi_right = ROI_DEFAULT_RIGHT;
 
-	ofstream csv_output;
-	csv_output.open ("catcher_output.txt");
+	ofstream file_output, file_output_csv;
+	file_output.open ("catcher_output.txt");
+	file_output_csv.open ("catcher_output.csv");
 
 
 	// allocate an image buffer objects
@@ -485,8 +486,9 @@ int main(int argc, char const *argv[]) {
 							A = (Z.t()*Z).inv() * Z.t() * Y;
 							B = (Z.t()*Z).inv() * Z.t() * X;
 
-							csv_output << "A: " << A << endl;
-							csv_output << "B: " << B << endl;
+							cout << "Writing coefficients to output file!!!" << endl;
+							file_output << "A: " << A << endl;
+							file_output << "B: " << B << endl;
 
 							// cout << "A: " << A << endl;
 							// cout << "B: " << B << endl;
@@ -535,9 +537,14 @@ int main(int argc, char const *argv[]) {
 					move_catcher_x = OFFSET_X_CAMERA;
 					move_catcher_y = -OFFSET_Y_CAMERA;
 
-					// Write output to file in csv format
-					csv_output << "real_ball_path: " << real_ball_path << endl;
-					csv_output.close();
+					// Write output to file
+					cout << "Writing to output csv file!!!" << endl;
+					file_output_csv << "x,y,z" << endl;
+					for (int i = 0; i < real_ball_path.size(); ++i){
+						file_output_csv << real_ball_path[i].x << "," << real_ball_path[i].y << "," << real_ball_path[i].z <<endl;
+					}
+					file_output_csv.close();
+					file_output.close();
 				}
 
 				// Increment the number of frames since the first frame
