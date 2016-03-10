@@ -5,6 +5,8 @@ Thumbs.db
 *.mov
 *.png
 
+~*.xlsx
+
 content/
 
 ## Ignore Visual Studio temporary files, build results, and

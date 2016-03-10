@@ -112,16 +112,17 @@ int main(int argc, char const *argv[]) {
 	file_output_csv.open ("catcher_output.csv");
 
 
+	// NOTE: ProcBuf will store the original image. Do not modify ProcBuf!
 	// allocate an image buffer objects
-	Mat frame_left;
-	//Mat frame_left_original; // a copy of the original image, no processing
+	Mat frame_left_algorithm; // What the computer sees
+	Mat frame_left_real; // The original image with some extra stuff
 	Mat frame_left_first; // The image before the first detected ball movement
 	Mat frame_left_prev;  // The previous frame
 	Mat frame_left_prev_2;
 	Mat frame_left_prev_3;
 
-	Mat frame_right;
-	//Mat frame_right_original;
+	Mat frame_right_algorithm; // What the computer sees
+	Mat frame_right_real; // The original image with some extra stuff
 	Mat frame_right_first; // The image before the first detected ball movement
 	Mat frame_right_prev; // The previous frame
 	Mat frame_right_prev_2;
@@ -245,36 +246,33 @@ int main(int argc, char const *argv[]) {
 			// Need to create child image or small region of interest for processing to exclude background and speed up processing
 			// Mat child = QS->IR.ProcBuf[i](Rect(x, y, width, height));
 
-			ProcBuf[0].copyTo(frame_left);
-			ProcBuf[1].copyTo(frame_right);
-
-			// TODO: Keep a copy of the original around
-			//ProcBuf[0].copyTo(frame_left_original);
-			//ProcBuf[1].copyTo(frame_right_original);
+			// Set the real frame output
+			ProcBuf[0].copyTo(frame_left_real);
+			ProcBuf[1].copyTo(frame_right_real);
 
 			// Let the corners trigger the ball in flight bool once
 			if(ball_in_flight == false){
 				// Abs diff the whole image. It should be pretty fast
 				// TODO: Use a slightly bigger roi?
-				absdiff(ProcBuf[0], frame_left_prev, frame_left);
-				absdiff(ProcBuf[1], frame_right_prev, frame_right);
+				absdiff(ProcBuf[0], frame_left_prev, frame_left_algorithm);
+				absdiff(ProcBuf[1], frame_right_prev, frame_right_algorithm);
 
 				// Blur an roi
-				GaussianBlur(frame_left(roi_left), frame_left(roi_left), Size(11, 11), 15.0, 15.0);
-				GaussianBlur(frame_right(roi_right), frame_right(roi_right), Size(11, 11), 15.0, 15.0);
+				GaussianBlur(frame_left_algorithm(roi_left), frame_left_algorithm(roi_left), Size(11, 11), 15.0, 15.0);
+				GaussianBlur(frame_right_algorithm(roi_right), frame_right_algorithm(roi_right), Size(11, 11), 15.0, 15.0);
 
 				// Threshold roi
-				threshold(frame_left, frame_left, 10, 256, THRESH_BINARY);
-				threshold(frame_right, frame_right, 10, 256, THRESH_BINARY);
+				threshold(frame_left_algorithm, frame_left_algorithm, 10, 256, THRESH_BINARY);
+				threshold(frame_right_algorithm, frame_right_algorithm, 10, 256, THRESH_BINARY);
 
 				//// Trigger detection
-				double mean_left = mean(frame_left(roi_left)).val[0];
-				double mean_right = mean(frame_right(roi_right)).val[0];
+				double mean_left = mean(frame_left_algorithm(roi_left)).val[0];
+				double mean_right = mean(frame_right_algorithm(roi_right)).val[0];
 
 				// Average all the pixels and trigger if average goes above a certain number
 				if (mean_left >= BALL_EMERGE_MEAN_THRESH && mean_right >= BALL_EMERGE_MEAN_THRESH){
-					// putText(ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
-					// putText(ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+					// putText(frame_left_real, to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+					// putText(frame_right_real, to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 					// Copy the the third image previous to be the background 'first' image
 					//frame_left_prev.copyTo(frame_left_first);
@@ -307,22 +305,22 @@ int main(int argc, char const *argv[]) {
 			else {
 				cout << "ball in flight" << endl;
 
-				putText(ProcBuf[0], "BALL IN FLIGHT", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+				putText(frame_left_real, "BALL IN FLIGHT", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
 				// Ball should only be in flight for around 40 frames
 				hard_reset_counter++;
 
 				// Do processing on images now that the ball is in flight
-				absdiff(frame_left, frame_left_first, frame_left);
-				absdiff(frame_right, frame_right_first, frame_right);
+				absdiff(ProcBuf[0], frame_left_first, frame_left_algorithm);
+				absdiff(ProcBuf[1], frame_right_first, frame_right_algorithm);
 
 				// Blur an roi
-				GaussianBlur(frame_left(roi_left), frame_left(roi_left), Size(11, 11), 15.0, 15.0);
-				GaussianBlur(frame_right(roi_right), frame_right(roi_right), Size(11, 11), 15.0, 15.0);
+				GaussianBlur(frame_left_algorithm(roi_left), frame_left_algorithm(roi_left), Size(11, 11), 15.0, 15.0);
+				GaussianBlur(frame_right_algorithm(roi_right), frame_right_algorithm(roi_right), Size(11, 11), 15.0, 15.0);
 
 				// Threshold roi
-				threshold(frame_left(roi_left), frame_left(roi_left), 10, 256, THRESH_BINARY);
-				threshold(frame_right(roi_right), frame_right(roi_right), 10, 256, THRESH_BINARY);
+				threshold(frame_left_algorithm, frame_left_algorithm, 10, 256, THRESH_BINARY);
+				threshold(frame_right_algorithm, frame_right_algorithm, 10, 256, THRESH_BINARY);
 
 				//
 				//// Ball tracking algorithm
@@ -339,8 +337,8 @@ int main(int argc, char const *argv[]) {
 				// CV_CHAIN_APPROX_NONE CV_CHAIN_APPROX_SIMPLE
 				// findContours(frame_left_first_diff_thresh.clone(), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
 				// findContours(frame_right_first_diff_thresh.clone(), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point());
-				findContours(frame_left.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
-				findContours(frame_right.clone()(roi_right), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_right.x, roi_right.y));
+				findContours(frame_left_algorithm.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
+				findContours(frame_right_algorithm.clone()(roi_right), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_right.x, roi_right.y));
 				// cout << "Left Contours: " << contours_left.size() << endl;
 
 				// cout << "contours_left count: " << contours_left.size() << endl;
@@ -377,11 +375,11 @@ int main(int argc, char const *argv[]) {
 					float ball_area_diff = (float) fabs(ball_m_left.m00 - ball_m_right.m00);
 
 					if( ball_y_diff <= MAX_DIFF_BALL_Y && ball_area_diff <= MAX_DIFF_BALL_AREA && frames_since_ball_trigger <= FRAMES_TO_LISTEN){
-						putText(ProcBuf[1], "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
+						putText(frame_right_real, "BALL FOUND", Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 						//drawContours(frame_left, contours_left, -1, Scalar(0,0,255), 3, 8, hierarchy_left, 2, Point() );
 						// Draw the centroid of the ball
-						circle(frame_left, ball_centroid_left, 5, Scalar(0,0,0), 1);
-						circle(frame_right, ball_centroid_right, 5, Scalar(0, 0, 0), 1);
+						circle(frame_left_real, ball_centroid_left, 5, Scalar(0,0,0), 1);
+						circle(frame_right_real, ball_centroid_right, 5, Scalar(0, 0, 0), 1);
 						// recalculate the roi (roi left and right widths and heights should be the same)
 						int x_margin = roi_left.width/2;
 						int y_margin = roi_left.height/2;
@@ -451,7 +449,7 @@ int main(int argc, char const *argv[]) {
 						real_coordinates.str("");
 						real_coordinates.clear();
 						real_coordinates << "(" << to_string((int)ball_centroid_3d_real_left[0].x) << ", " << to_string((int)ball_centroid_3d_real_left[0].y) << ", " << to_string((int)ball_centroid_3d_real_left[0].z) << ")";
-						putText(ProcBuf[0], real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
+						putText(frame_left_real, real_coordinates.str(), Point2f(10, 410), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255,255,255), 2);
 
 						cout << "Before Matrix Math" << endl;
 
@@ -502,7 +500,7 @@ int main(int argc, char const *argv[]) {
 							// Cast coordinates to int so they show up small in text
 							predicted_coordinates << "(" << to_string((int)move_catcher_x) << ", " << to_string((int)move_catcher_y) << ")";
 							cout << "Predicted Coordinates: " << predicted_coordinates.str() << endl;
-							putText(ProcBuf[0], predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
+							putText(frame_left_real, predicted_coordinates.str(), Point2f(10, 380), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 2);
 						}
 						else {
 							cout << "Not enough real-world coordinates to do regression on" << endl;
@@ -551,11 +549,12 @@ int main(int argc, char const *argv[]) {
 				frames_since_ball_trigger++;
 			}
 
+			// TODO: Print out frame_left_algorithm instead
 			// Paint resulting frames to the output
-			ProcBuf[0].copyTo(OutBuf1[0]);
-			ProcBuf[1].copyTo(OutBuf1[1]);
-			frame_left(roi_left).copyTo(OutBuf1[0](roi_left));
-			frame_right(roi_right).copyTo(OutBuf1[1](roi_right));
+			frame_left_real.copyTo(OutBuf1[0]);
+			frame_right_real.copyTo(OutBuf1[1]);
+			frame_left_algorithm(roi_left).copyTo(OutBuf1[0](roi_left));
+			frame_right_algorithm(roi_right).copyTo(OutBuf1[1](roi_right));
 
 			// This is how you move the catcher.  QS->moveX and QS->moveY (both in inches) must be calculated and set first.
 			// TODO: Are we offsetting in the right direction? Scaling correctly?
@@ -566,6 +565,12 @@ int main(int argc, char const *argv[]) {
 			// SetEvent(QS->QSMoveEvent);		// Signal the move event to move catcher. The event will be reset in the move thread.
 			imshow("OutBuf1 Left", OutBuf1[0]);
 			imshow("OutBuf1 Right", OutBuf1[1]);
+
+			imshow("Algorithm Left", frame_left_algorithm);
+			imshow("Algorithm Right", frame_right_algorithm);
+
+			imshow("Real Left", frame_left_real);
+			imshow("Real Right", frame_right_real);
 		}
 
 
@@ -582,8 +587,8 @@ int main(int argc, char const *argv[]) {
 		}
 
 		// Set previous frame for next loop iteration
-		//frame_left_original.copyTo(frame_left_prev);
-		//frame_right_original.copyTo(frame_right_prev);
+		// frame_left_original.copyTo(frame_left_prev);
+		// frame_right_original.copyTo(frame_right_prev);
 
 		ProcBuf[0].copyTo(frame_left_prev);
 		ProcBuf[1].copyTo(frame_right_prev);
