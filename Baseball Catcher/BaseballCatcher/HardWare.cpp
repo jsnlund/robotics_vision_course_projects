@@ -94,7 +94,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 	// The number of points before allowing the regression algorithm to run and predict points
 	int const MINIMUM_REGRESSION_POINTS = 3;
 	// How different the trigger ROI needs to be to trigger the baseball in flight code
-	double const BALL_EMERGE_MEAN_THRESH = 0.01;
+	double const BALL_EMERGE_MEAN_THRESH = 0.005;
 	// If left and right ball contour exceeds these constants, the data is discarded
 	float const MAX_DIFF_BALL_Y = 10.0f;
 	float const MAX_DIFF_BALL_AREA = 200.0f;
@@ -108,9 +108,9 @@ long QSProcessThreadFunc(CTCSys *QS)
 	// int const DEPTH_TO_LISTEN = 120;
 
 	// inches below the camera, so add this to
-	double const OFFSET_Y_CAMERA = 22.5;
+	double const OFFSET_Y_CAMERA = 12.5;
 	// inches
-	double const OFFSET_X_CAMERA = 10.5;
+	double const OFFSET_X_CAMERA = 13.0;
 
 	// The camera is at z=0, but the catcher is probably at z = -3
 	double const CATCHER_Z = -3.0;
@@ -120,8 +120,8 @@ long QSProcessThreadFunc(CTCSys *QS)
 	// double const CATCHER_REAL_RANGE = 11.0;
 	//double const SCALE_X_CATCHER = 9.0/11.0;
 	//double const SCALE_Y_CATCHER = 9.0/11.0;
-	double const SCALE_X_CATCHER = 1.0;
-	double const SCALE_Y_CATCHER = 1.0;
+	double const SCALE_X_CATCHER = 7.0/10.0;
+	double const SCALE_Y_CATCHER = 7.0/10.0;
 
 	// Reset catcher if nothing is happening
 	int const EMPTY_FRAME_LIMIT = 10;
@@ -233,7 +233,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 	// Change these to move the catcher
 	double move_catcher_x = OFFSET_X_CAMERA;
-	double move_catcher_y = -OFFSET_Y_CAMERA;
+	double move_catcher_y = OFFSET_Y_CAMERA;
 
 
 	while (QS->EventEndProcess == FALSE) {
@@ -304,7 +304,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 				double mean_right = mean(frame_right(roi_right)).val[0];
 
 				//// Average all the pixels and trigger if average goes above a certain number
-				if (mean_left >= BALL_EMERGE_MEAN_THRESH && mean_right >= BALL_EMERGE_MEAN_THRESH){
+				if (mean_left >= BALL_EMERGE_MEAN_THRESH || mean_right >= BALL_EMERGE_MEAN_THRESH){
 					// putText(QS->IR.ProcBuf[0], to_string(mean_left), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 					// putText(QS->IR.ProcBuf[1], to_string(mean_right), Point(10, 470), FONT_HERSHEY_SIMPLEX, 1, CV_RGB(255, 255, 255), 2);
 
@@ -346,12 +346,12 @@ long QSProcessThreadFunc(CTCSys *QS)
 				absdiff(frame_right, frame_right_first, frame_right);
 
 				// Blur an roi
-				GaussianBlur(frame_left(roi_left), frame_left(roi_left), Size(11, 11), 15.0, 15.0);
-				GaussianBlur(frame_right(roi_right), frame_right(roi_right), Size(11, 11), 15.0, 15.0);
+				GaussianBlur(frame_left(roi_left), frame_left(roi_left), Size(7, 7), 15.0, 15.0);
+				GaussianBlur(frame_right(roi_right), frame_right(roi_right), Size(7, 7), 15.0, 15.0);
 
 				// Threshold roi
-				threshold(frame_left(roi_left), frame_left(roi_left), 10, 256, THRESH_BINARY);
-				threshold(frame_right(roi_right), frame_right(roi_right), 10, 256, THRESH_BINARY);
+				threshold(frame_left(roi_left), frame_left(roi_left), 8, 256, THRESH_BINARY);
+				threshold(frame_right(roi_right), frame_right(roi_right), 8, 256, THRESH_BINARY);
 
 				//// TODO: Ball tracking algorithm
 
@@ -369,13 +369,13 @@ long QSProcessThreadFunc(CTCSys *QS)
 				findContours(frame_left.clone()(roi_left), contours_left, hierarchy_left, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_left.x, roi_left.y));
 				findContours(frame_right.clone()(roi_right), contours_right, hierarchy_right, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(roi_right.x, roi_right.y));
 				// cout << "Left Contours: " << contours_left.size() << endl;
-
 				// cout << "contours_left count: " << contours_left.size() << endl;
 				// cout << "contours_right count: " << contours_right.size() << endl;
 
 				//// cvtColor(frame_left_first_diff_thresh, frame_left_first_diff_thresh, COLOR_GRAY2BGR);
 				////         cvtColor(frame_right_first_diff_thresh, frame_right_first_diff_thresh, COLOR_GRAY2BGR);
-				////
+
+
 				//// GET X,Y,Z location and move ROI
 				if(contours_left.size() > 0 && contours_right.size() > 0){
 					// We found a ball! Reset idle frame count
@@ -394,6 +394,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 					// cout << "right centroid: " << ball_centroid_right << endl;
 					// cout << "drawContours!" << endl;
 
+					// #### - Checks that y-cords and contour size for each frame is within limits
 					float ball_y_diff = fabs((float)(ball_centroid_left.y - ball_centroid_right.y));
 					float ball_area_diff = (float) fabs(ball_m_left.m00 - ball_m_right.m00);
 
@@ -405,6 +406,8 @@ long QSProcessThreadFunc(CTCSys *QS)
 						// recalculate the roi (roi widths and heights should be the same)
 						int x_margin = roi_left.width/2;
 						int y_margin = roi_left.height/2;
+
+						// #### - Moves ROI as the detected ball contour moves
 						// Make it so that ROI moves left or right still, even if it stops moving up or down
 						if(
 							ball_centroid_left.x <  IMAGE_WIDTH - x_margin &&
@@ -537,7 +540,7 @@ long QSProcessThreadFunc(CTCSys *QS)
 					// TODO: Do we want the catcher to start to the right or left?
 					// TODO: Create starting position constants
 					move_catcher_x = OFFSET_X_CAMERA;
-					move_catcher_y = -OFFSET_Y_CAMERA;
+					move_catcher_y = OFFSET_Y_CAMERA;
 				}
 
 				// Increment the number of frames since the first frame
@@ -552,8 +555,8 @@ long QSProcessThreadFunc(CTCSys *QS)
 
 			// This is how you move the catcher.  QS->moveX and QS->moveY (both in inches) must be calculated and set first.
 			// TODO: Are we offsetting in the right direction? Scaling correctly?
-			QS->Move_X = (move_catcher_x - OFFSET_X_CAMERA) * SCALE_X_CATCHER;
-			QS->Move_Y = (move_catcher_y + OFFSET_Y_CAMERA) * SCALE_Y_CATCHER;
+			QS->Move_X = -(move_catcher_x - OFFSET_X_CAMERA) * SCALE_X_CATCHER;
+			QS->Move_Y = -(move_catcher_y - OFFSET_Y_CAMERA) * SCALE_Y_CATCHER;
 			SetEvent(QS->QSMoveEvent);		// Signal the move event to move catcher. The event will be reset in the move thread.
 		}
 		// Display Image
