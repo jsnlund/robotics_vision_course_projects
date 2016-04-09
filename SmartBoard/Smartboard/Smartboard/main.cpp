@@ -46,9 +46,11 @@ int main(){
 
 
     // Final output of the projector
-    Mat frame_projector;
+    Mat frame_projector = Mat(Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_8UC3);
+    frame_projector.setTo(ORANGE);
     // Final output image of the camera
-    Mat frame_camera;
+    Mat frame_camera = Mat(Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_8UC3);
+    frame_camera.setTo(ORANGE);
 
     // if(FULLSCREEN){
     //     namedWindow("Projector", CV_WINDOW_NORMAL);
@@ -65,30 +67,42 @@ int main(){
 
     // Main loop
     while (keypress != ESC_KEY) {
-
+        camera_2 >> frame_camera;
 
 
         switch(processingMode){
             // Calibration Mode
             case SPACE_KEY:
-                perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, true);
+                // perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, true);
                 break;
             case KEY_C:
-                perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, false);
+                // perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, false);
                 break;
-            default:
             // Drawing mode
             case KEY_1:
                 // Detection
                 // Draw points
                 // set display frames
                 break;
+            default:
+                // Nothing is happening - just show live feed
+
+                break;
         }
 
+
+        // if(frame_projector.empty()){
+        //     frame_projector.setTo(ORANGE);
+        // }
         // Display the projector view
         imshow("Projector", frame_projector);
+
+
+        // if(frame_camera.empty()){
+        //     frame_camera.setTo(ORANGE);
+        // }
         // Display the camera (laptop) view
-        imshow("Projector", frame_camera);
+        imshow("Camera", frame_camera);
 
 
         keypress = waitKey(30);
