@@ -7,6 +7,10 @@ using namespace std;
 using namespace cv;
 
 Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate_transform) {
+    // Save off a pristine version of the input camera image
+    Mat frame_camera_original;
+    (*frame_camera).copyTo(frame_camera_original);
+
     // calibrate_command could be acquire or calculate_transform
 
     // Create the calibration image
@@ -28,11 +32,7 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
     Mat frame_camer_hsv, frame_camera_hsv_binary;
     cvtColor(*frame_camera, frame_camer_hsv, COLOR_BGR2HSV);
 
-
-    // int const HUE_CALIB =
-
-    // Scalar const HSV_GREEN = Scalar(HUE_MARKER,MAX_SAT,MAX_VAL);
-
+    // NOTE: To adjust HSV values in header file
     // InRange will create a threshold-like binary image
     // See opencv/sources/samples/cpp/camshiftdemo.cpp
     inRange(frame_camer_hsv, Scalar(HUE_MARKER - HUE_MARKER_BUFFER, MIN_SAT, MIN_VAL), Scalar(HUE_MARKER + HUE_MARKER_BUFFER, MAX_SAT, MAX_VAL), frame_camera_hsv_binary);
@@ -43,7 +43,6 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
     erode(frame_camera_hsv_binary, frame_camera_hsv_binary, Mat(), Point(-1,-1), ITERATIONS);
     dilate(frame_camera_hsv_binary, frame_camera_hsv_binary, Mat(), Point(-1,-1), ITERATIONS);
     // imshow("Camera 2 binary eroded", frame_camera_hsv_binary);
-
 
 
     // Find contours
@@ -88,11 +87,6 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
 
     // Set the camera frame output
     frame_contours.copyTo(*frame_camera);
-    // Or this?
-    // frame_camera = &frame_contours;
-
-    // imshow("Camera 2 Find Contours", frame_contours);
-
 
     if(calculate_transform){
         // The user indicated that they want to use the current contour as the calibration image.
@@ -107,8 +101,8 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
         edges_projector.push_back(Point2f(0, IMAGE_HEIGHT-1)); // Lower left
         edges_projector.push_back(Point2f(IMAGE_WIDTH-1, IMAGE_HEIGHT-1)); // Lower right
 
-        cout << "current_calibration_cotour: " << current_calibration_cotour << endl;
-        cout << "current_calibration_cotour_centroid: " << current_calibration_cotour_centroid << endl;
+        // cout << "current_calibration_cotour: " << current_calibration_cotour << endl;
+        // cout << "current_calibration_cotour_centroid: " << current_calibration_cotour_centroid << endl;
 
         // Loop through all the points of the current contour and find the four corners
 
@@ -133,7 +127,7 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
             double y = temp_point.y;
             // Calculate the absolute distance from the centroid
             double distance = sqrt(pow(centroid_x-x, 2) + pow(centroid_y-y, 2));
-            cout << "distance: " << distance << endl;
+            // cout << "distance: " << distance << endl;
 
             // Determine which region the point is in based off the centroid:
             // Upper left, upper right, lower left, or lower right
@@ -141,15 +135,15 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
                 // Now that we know what region we are in, calculate the distance of the old candidate point
                 // Initialize
                 if(upper_left.x == -1) {
+                    // cout << "initializing " << temp_point << " to upper_left!" << endl;
                     upper_left = temp_point;
-                    cout << "initializing " << temp_point << " to upper_left!" << endl;
                     continue;
                 }
                 double distance_old = sqrt(pow(centroid_x-upper_left.x, 2) + pow(centroid_y-upper_left.y, 2));
                 // Determine which distance is greater
                 if(distance > distance_old){
                     // Set the new upper left point!
-                    cout << "setting " << temp_point << " to upper_left!" << endl;
+                    // cout << "setting " << temp_point << " to upper_left!" << endl;
                     upper_left = temp_point;
                 }
             }
@@ -157,14 +151,14 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
                 // Now that we know what region we are in, calculate the distance of the old candidate point
                 // Initialize
                 if(upper_right.x == -1) {
+                    // cout << "initializing " << temp_point << " to upper_right!" << endl;
                     upper_right = temp_point;
-                    cout << "initializing " << temp_point << " to upper_right!" << endl;
                     continue;
                 }
                 double distance_old = sqrt(pow(centroid_x-upper_right.x, 2) + pow(centroid_y-upper_right.y, 2));
                 if(distance > distance_old){
                     // Set the new upper left point!
-                    cout << "setting " << temp_point << " to upper_right!" << endl;
+                    // cout << "setting " << temp_point << " to upper_right!" << endl;
                     upper_right = temp_point;
                 }
             }
@@ -172,14 +166,14 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
                 // Now that we know what region we are in, calculate the distance of the old candidate point
                 // Initialize
                 if(lower_left.x == -1) {
+                    // cout << "initializing " << temp_point << " to lower_left!" << endl;
                     lower_left = temp_point;
-                    cout << "initializing " << temp_point << " to lower_left!" << endl;
                     continue;
                 }
                 double distance_old = sqrt(pow(centroid_x-lower_left.x, 2) + pow(centroid_y-lower_left.y, 2));
                 if(distance > distance_old){
                     // Set the new upper left point!
-                    cout << "setting " << temp_point << " to lower_left!" << endl;
+                    // cout << "setting " << temp_point << " to lower_left!" << endl;
                     lower_left = temp_point;
                 }
             }
@@ -187,14 +181,14 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
                 // Now that we know what region we are in, calculate the distance of the old candidate point
                 // Initialize
                 if(lower_right.x == -1) {
+                    // cout << "initializing " << temp_point << " to lower_right!" << endl;
                     lower_right = temp_point;
-                    cout << "initializing " << temp_point << " to lower_right!" << endl;
                     continue;
                 }
                 double distance_old = sqrt(pow(centroid_x-lower_right.x, 2) + pow(centroid_y-lower_right.y, 2));
                 if(distance > distance_old){
                     // Set the new upper left point!
-                    cout << "setting " << temp_point << " to lower_right!" << endl;
+                    // cout << "setting " << temp_point << " to lower_right!" << endl;
                     lower_right = temp_point;
                 }
             }
@@ -213,10 +207,10 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
         CV_Assert(lower_left.x != -1);
         CV_Assert(lower_right.x != -1);
 
-        cout << "upper_left: " << upper_left << endl;
-        cout << "upper_right: " << upper_right << endl;
-        cout << "lower_left: " << lower_left << endl;
-        cout << "lower_right: " << lower_right << endl;
+        // cout << "upper_left: " << upper_left << endl;
+        // cout << "upper_right: " << upper_right << endl;
+        // cout << "lower_left: " << lower_left << endl;
+        // cout << "lower_right: " << lower_right << endl;
 
         // Save off all 4 corners of the calibration rectangle, use them for creating the perspective transform
         // Make sure the order matches the order of edges_projector
@@ -230,7 +224,7 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
 
         // Test the perspective transform on the calibration image
         Mat frame_perspective_test;
-        warpPerspective(*frame_camera, frame_perspective_test, transform_matrix, Size(IMAGE_WIDTH, IMAGE_HEIGHT));
+        warpPerspective(frame_camera_original, frame_perspective_test, transform_matrix, Size(IMAGE_WIDTH, IMAGE_HEIGHT));
 
         imshow("Perspective Transform", frame_perspective_test);
 
