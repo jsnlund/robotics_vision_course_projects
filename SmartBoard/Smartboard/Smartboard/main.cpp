@@ -72,14 +72,25 @@ int main(){
 
         switch(processingMode){
             // Calibration Mode
-            case SPACE_KEY:
-                // perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, true);
-                break;
             case KEY_C:
-                // perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, false);
+                // Acquire mode - continual
+                perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, false);
+                break;
+            case SPACE_KEY:
+                // Calculate transform mode
+                perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, true);
+                // This should only happen once, so...
+                // TODO: Immediately transfer to drawing mode? Or just reset and let the user enter drawing mode?
+                processingMode = -1;
                 break;
             // Drawing mode
             case KEY_1:
+                if(perspective_transform.empty()){
+                    cout << "perspective_transform has not been calculated yet! Please calibrate" << endl;
+                    // Reset processing mode
+                    processingMode = -1;
+                }
+                // TODO: If in drawing mode, enable different commands? Ignore other commands?
                 // Detection
                 // Draw points
                 // set display frames

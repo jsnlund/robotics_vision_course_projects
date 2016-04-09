@@ -20,11 +20,6 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
     // Copy the calibration rectangle to the projector frame
     frame_calibration.copyTo(*frame_projector);
 
-    return Mat();
-    // TODO: Incorporate slowly
-
-
-
     // This will hold what we think is the calibration green square contour
     vector<Point> current_calibration_cotour;
     Point current_calibration_cotour_centroid;
