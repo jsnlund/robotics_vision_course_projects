@@ -150,11 +150,11 @@
   <ItemGroup>
     <ClCompile Include="calibration.cpp" />
     <ClCompile Include="drawing.cpp" />
+    <ClCompile Include="globals.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="calibration.h" />
-    <ClInclude Include="control.h" />
     <ClInclude Include="drawing.h" />
     <ClInclude Include="globals.h" />
   </ItemGroup>

@@ -6,17 +6,30 @@
 using namespace std;
 using namespace cv;
 
+
+// Initialize constants set in the header file
+const int HUE_CALIB = 55;
+const int HUE_BUFFER_CALIB = 15;
+const int MIN_SAT_CALIB = (int) 0.3 * 255;
+const int MAX_SAT_CALIB = (int) 1.0 * 255;
+const int MIN_VAL_CALIB = (int) 0.1 * 255;
+const int MAX_VAL_CALIB = (int) 1.0 * 255;
+
+// const Size CALIBRATION_FRAME_SIZE = Size(IMAGE_WIDTH,IMAGE_HEIGHT);
+const Size CALIBRATION_FRAME_SIZE = Size(IMAGE_WIDTH*1.8,IMAGE_HEIGHT*1.8);
+
+
+
+// if calculate_transform is false, a green rectangle is produced on the projector frame and the code tries to find it in the camera frame (returns an empty Mat)
+// if calculate_transform is true, it takes the currently detected calibration rectangle and calculates the perspective transform Mat from that
+
 Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate_transform) {
     // Save off a pristine version of the input camera image
     Mat frame_camera_original;
     (*frame_camera).copyTo(frame_camera_original);
 
-    // calibrate_command could be acquire or calculate_transform
-
     // Create the calibration image
-    // Mat frame_calibration = Mat(Size(IMAGE_WIDTH,IMAGE_HEIGHT), CV_8UC3);
-    Mat frame_calibration = Mat(Size(IMAGE_WIDTH*1.8,IMAGE_HEIGHT*1.8), CV_8UC3);
-    // Mat frame_calibration = Mat(Size(IMAGE_WIDTH*2,IMAGE_HEIGHT*2), CV_8UC3);
+    Mat frame_calibration = Mat(CALIBRATION_FRAME_SIZE, CV_8UC3);
 
     // New calibration image
     frame_calibration.setTo(GREEN);
@@ -29,13 +42,13 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
     Point current_calibration_cotour_centroid;
 
     // Try out HSV
-    Mat frame_camer_hsv, frame_camera_hsv_binary;
-    cvtColor(*frame_camera, frame_camer_hsv, COLOR_BGR2HSV);
+    Mat frame_camera_hsv, frame_camera_hsv_binary;
+    cvtColor(*frame_camera, frame_camera_hsv, COLOR_BGR2HSV);
 
     // NOTE: To adjust HSV values in header file
     // InRange will create a threshold-like binary image
     // See opencv/sources/samples/cpp/camshiftdemo.cpp
-    inRange(frame_camer_hsv, Scalar(HUE_MARKER - HUE_MARKER_BUFFER, MIN_SAT, MIN_VAL), Scalar(HUE_MARKER + HUE_MARKER_BUFFER, MAX_SAT, MAX_VAL), frame_camera_hsv_binary);
+    inRange(frame_camera_hsv, Scalar(HUE_CALIB - HUE_BUFFER_CALIB, MIN_SAT_CALIB, MIN_VAL_CALIB), Scalar(HUE_CALIB + HUE_BUFFER_CALIB, MAX_SAT_CALIB, MAX_VAL_CALIB), frame_camera_hsv_binary);
 
     // imshow("Camera 2 binary", frame_camera_hsv_binary);
     // Do erode and dilate

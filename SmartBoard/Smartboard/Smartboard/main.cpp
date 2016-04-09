@@ -1,23 +1,37 @@
-#include <iostream>
 #include <opencv2/opencv.hpp>
+// opencv imcludes iostream already for cout...
 
 using namespace cv;
 using namespace std;
 
-// #include "initialize.h"
 #include "calibration.h"
 #include "drawing.h"
-#include "control.h"
 #include "globals.h"
+
+//
+////  Define constants for the main control loop
+//
+
+// Keyboard codes
+int const ESC_KEY = 27;
+int const SPACE_KEY = 32;
+int const KEY_1 = 49; // 1
+int const KEY_2 = 50; // 2
+int const KEY_3 = 51; // 3
+int const KEY_4 = 52; // 4
+int const KEY_5 = 53; // 5
+int const KEY_6 = 54; // 6
+int const KEY_7 = 55; // 7
+int const KEY_8 = 56; // 8
+int const KEY_9 = 57; // 9
+int const KEY_C = 99; // c
+
+
 
 
 // Main control loop
 int main(){
     cout << "Starting Smartboard...\n";
-
-    //
-    //// Initialization
-    //
 
     //
     //// Set up video capture objects
@@ -41,9 +55,6 @@ int main(){
     else{
         camera_2_opened = true;
     }
-
-
-
 
     // Final output of the projector
     Mat frame_projector = Mat(Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_8UC3);
@@ -71,7 +82,9 @@ int main(){
 
 
         switch(processingMode){
+            //
             // Calibration Mode
+            //
             case KEY_C:
                 // Acquire mode - continual
                 perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, false);
@@ -83,38 +96,34 @@ int main(){
                 // TODO: Immediately transfer to drawing mode? Or just reset and let the user enter drawing mode?
                 processingMode = -1;
                 break;
+            //
             // Drawing mode
+            //
             case KEY_1:
                 if(perspective_transform.empty()){
                     cout << "perspective_transform has not been calculated yet! Please calibrate" << endl;
                     // Reset processing mode
                     processingMode = -1;
                 }
-                // TODO: If in drawing mode, enable different commands? Ignore other commands?
-                // Detection
-                // Draw points
-                // set display frames
+                else {
+                    // TODO: If in drawing mode, enable different commands? Ignore other commands?
+                    // Detection
+                    // Draw points
+                    // set display frames
+                    draw(&frame_camera, &frame_projector, perspective_transform);
+                }
                 break;
             default:
                 // Nothing is happening - just show live feed
-
                 break;
         }
 
 
-        // if(frame_projector.empty()){
-        //     frame_projector.setTo(ORANGE);
-        // }
         // Display the projector view
         imshow("Projector", frame_projector);
 
-
-        // if(frame_camera.empty()){
-        //     frame_camera.setTo(ORANGE);
-        // }
         // Display the camera (laptop) view
         imshow("Camera", frame_camera);
-
 
         keypress = waitKey(30);
         // If no key was pressed, it is -1
