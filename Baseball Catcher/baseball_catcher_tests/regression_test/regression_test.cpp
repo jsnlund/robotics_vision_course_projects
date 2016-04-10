@@ -115,14 +115,14 @@ int main(int argc, char const *argv[]) {
 	// NOTE: ProcBuf will store the original image. Do not modify ProcBuf!
 	// allocate an image buffer objects
 	Mat frame_left_algorithm; // What the computer sees
-	Mat frame_left_real; // The original image with some extra stuff
+	Mat frame_left_real; // The original image with some extra color output
 	Mat frame_left_first; // The image before the first detected ball movement
 	Mat frame_left_prev;  // The previous frame
 	Mat frame_left_prev_2;
 	Mat frame_left_prev_3;
 
 	Mat frame_right_algorithm; // What the computer sees
-	Mat frame_right_real; // The original image with some extra stuff
+	Mat frame_right_real; // The original image with some extra color output
 	Mat frame_right_first; // The image before the first detected ball movement
 	Mat frame_right_prev; // The previous frame
 	Mat frame_right_prev_2;
@@ -249,6 +249,12 @@ int main(int argc, char const *argv[]) {
 			// Set the real frame output
 			ProcBuf[0].copyTo(frame_left_real);
 			ProcBuf[1].copyTo(frame_right_real);
+
+			// Convert real frame to color, so output graphics are also color
+			cvtColor(frame_left_real, frame_left_real, COLOR_GRAY2BGR);
+			cvtColor(frame_right_real, frame_right_real, COLOR_GRAY2BGR);
+
+
 
 			// Let the corners trigger the ball in flight bool once
 			if(ball_in_flight == false){
@@ -605,8 +611,8 @@ int main(int argc, char const *argv[]) {
 		imshow("ProcBuf Right", ProcBuf[1]);
 
 		// Need this for images to display, or else output windows just show up gray
-		// keypress = waitKey(30);
-		keypress = waitKey(800);
+		keypress = waitKey(30);
+		// keypress = waitKey(800);
 
 		// Simulate the catch ball button - toggle it
 		if(keypress == C_KEY) {
