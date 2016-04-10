@@ -43,9 +43,9 @@ const Scalar GREEN_UPPER_HSV =  Scalar(HUE_MARKER + HUE_MARKER_BUFFER, MAX_SAT, 
 // rarrow = 63235
 // liveVideo = True
 // cornerWidth = 75
-// width = 640
-// height = 480
 
+Scalar stylus_color = RED;
+int stylus_width = 3;
 
 
 
@@ -105,7 +105,6 @@ vector<Point> find_stylus_contour(Mat *frame_camera){
 
 
 
-
 void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
     // Create the initial ink frame and set it to all black
@@ -120,6 +119,8 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
         prev_pt = Point(-1,-1);
         return;
     }
+
+    // TODO: Pull the stylus drawing code into one function, so it isn't repeated in draw and erase?
 
     // Get centroid and enclosing circle radius of contour
     Point2f centroid;
@@ -136,11 +137,33 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
     circle(*frame_camera, centroid, stylus_enclosing_radius, Scalar(200, 200, 0), 2);
 
 
-    // if point inside projector area - secondary priority
+    // TODO: if point inside projector area - secondary priority
+
+
     // transform centroid to projector frame - prev_pt will already be in projector frame
-    // draw line from prev_pt to centroid
+    vector<Point2f> points, points_transformed;
+    // Transform the centroid to the projector coordinates
+    points.push_back(centroid);
 
-    // circle(frame_contours, centroid, 5, GREEN, 3);
+    // use perspectiveTransform() to transform only select points instead of an entire image
+    perspectiveTransform(points, points_transformed, perspective_transform);
 
-    prev_pt = centroid;
+    Point2f centroid_transformed = points[0];
+
+    // draw line from prev_pt to centroid, if prev_pt exists
+    if(prev_pt.x != -1){
+        line(*frame_projector, prev_pt, centroid_transformed, stylus_color, stylus_width, 8);
+    }
+
+    // Save the transformed centroid as the previous point
+    prev_pt = centroid_transformed;
+}
+
+
+// TODO:
+void erase() {
+
+
+
+
 }
