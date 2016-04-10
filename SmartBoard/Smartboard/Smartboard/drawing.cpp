@@ -119,6 +119,8 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
         return;
     }
 
+
+
     // TODO: Pull the stylus drawing code into one function, so it isn't repeated in draw and erase?
 
     // Get centroid and enclosing circle radius of contour
@@ -130,9 +132,11 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
     // Moments ms = moments(contour);
     // centroid = Point2d(ms.m10 / ms.m00, ms.m01 / ms.m00);
 
+
     // Draw the center point of the stylus
     circle(*frame_camera, centroid, 5, BLUE, -1);
     circle(*frame_camera, centroid, stylus_enclosing_radius, Scalar(200, 200, 0), 2);
+
 
 
     // TODO: if point inside projector area - secondary priority
@@ -148,6 +152,12 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
     Point2f centroid_transformed = points_transformed[0];
 
+    // Create a throw-away frame for the stylus
+    Mat frame_stylus;
+    (*frame_projector).copyTo(frame_stylus);
+    // Draw the center point of the stylus
+    circle(frame_stylus, centroid_transformed, 5, BLUE, -1);
+    circle(frame_stylus, centroid_transformed, stylus_enclosing_radius, Scalar(200, 200, 0), 2);
 
     // draw line from prev_pt to centroid, if prev_pt exists
     if(prev_pt.x != -1){
@@ -164,6 +174,7 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
     // Combine frame_ink with the projector frame
     add(*frame_projector, frame_ink, *frame_projector);
+    add(*frame_projector, frame_stylus, *frame_projector);
 
     // Save the transformed centroid as the previous point
     prev_pt = centroid_transformed;
