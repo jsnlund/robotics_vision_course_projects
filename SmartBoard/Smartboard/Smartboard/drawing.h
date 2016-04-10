@@ -11,6 +11,10 @@
 // Do NOT include cpp files in headers.
 
 void draw(cv::Mat *frame_camera, cv::Mat *frame_projector, cv::Mat perspective_transform);
+void erase(cv::Mat *frame_camera, cv::Mat *frame_projector, cv::Mat perspective_transform);
+void clear(cv::Mat *frame_projector);
+
+
 // TODO: Implement other functions here
 // set_stylus_width
 // set_stylus_color

@@ -27,7 +27,7 @@ int const KEY_W = 119; //
 
 
 
-int const KEY_1 = 49; // 1
+int const KEY_1 = 49; // Clear the board
 int const KEY_2 = 50; // 2
 int const KEY_3 = 51; // 3
 int const KEY_4 = 52; // 4
@@ -117,13 +117,24 @@ int main(){
                     processingMode = -1;
                 }
                 else {
-                    // TODO: If in drawing mode, enable different commands? Ignore other commands?
-                    // Detection
-                    // Draw points
-                    // set display frames
                     draw(&frame_camera, &frame_projector, perspective_transform);
                 }
                 break;
+            case KEY_E:
+                if(perspective_transform.empty()){
+                    cout << "perspective_transform has not been calculated yet! Please calibrate" << endl;
+                    processingMode = -1;
+                }
+                else {
+                    erase(&frame_camera, &frame_projector, perspective_transform);
+                }
+                break;
+            case KEY_1:
+                clear(&frame_projector);
+                // Automatically go to draw mode
+                processingMode = KEY_D;
+                break;
+
             default:
                 // Nothing is happening - just show live feed
                 break;

@@ -182,9 +182,15 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
 
 // TODO:
-void erase() {
+void erase(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
 
 
 
+}
+
+
+void clear(Mat *frame_projector) {
+    frame_ink.setTo(BLACK);
+    (*frame_projector).setTo(BLACK);
 }
