@@ -148,9 +148,18 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
     Point2f centroid_transformed = points_transformed[0];
 
+
     // draw line from prev_pt to centroid, if prev_pt exists
     if(prev_pt.x != -1){
-        line(frame_ink, prev_pt, centroid_transformed, stylus_color, stylus_width, 8);
+        // const float PT_DIST_DIFF_THRESHOLD = 100;
+        // float pt_dist_diff = sqrt(pow(prev_pt.x - centroid_transformed.x, 2) + pow(prev_pt.y - centroid_transformed.y, 2) );
+        // if(pt_dist_diff < PT_DIST_DIFF_THRESHOLD){
+            line(frame_ink, prev_pt, centroid_transformed, stylus_color, stylus_width, 8);
+        // }
+        // else {
+            // Close up the draw
+            // line(frame_ink, prev_pt, prev_pt, stylus_color, stylus_width, 8);
+        // }
     }
 
     // Combine frame_ink with the projector frame

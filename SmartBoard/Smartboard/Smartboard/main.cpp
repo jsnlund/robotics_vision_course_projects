@@ -12,7 +12,7 @@ using namespace std;
 ////  Define constants for the main control loop
 //
 
-const bool FULLSCREEN = false;
+const bool FULLSCREEN = true;
 
 // Keyboard codes
 int const ESC_KEY = 27; // Exit program
