@@ -21,9 +21,6 @@ const Scalar GREEN_UPPER_HSV =  Scalar(HUE_MARKER + HUE_MARKER_BUFFER, MAX_SAT, 
 // greenLower = (35, 60, 50) #(40,int(0.3*255),int(0.1*255))# (80,60,140)#
 // greenUpper = (64, 255, 255) #(70,int(1*255),int(1*255))# (130,100,200)#
 
-
-
-
 // pts = deque(maxlen=args["buffer"])
 // blurme = True
 // center = (320,240)
@@ -31,10 +28,6 @@ const Scalar GREEN_UPPER_HSV =  Scalar(HUE_MARKER + HUE_MARKER_BUFFER, MAX_SAT, 
 // lineMin = 2
 // eraseThick = 30
 // eraseMin = 5
-// red = (0,0,255)
-// green = (0,255,0)
-// blue = (255,0,0)
-// orange = (0,80,200)
 // markerColors = [red, green, blue,orange]
 // lineColor = 0
 // dwnarrow = 63233
@@ -44,16 +37,26 @@ const Scalar GREEN_UPPER_HSV =  Scalar(HUE_MARKER + HUE_MARKER_BUFFER, MAX_SAT, 
 // liveVideo = True
 // cornerWidth = 75
 
+vector<Scalar> stylus_colors = {
+    RED,
+    GREEN,
+    BLUE,
+    ORANGE,
+};
+
 Scalar stylus_color = RED;
 int stylus_width = 3;
 
+// Create the initial ink frame and set it to all black
+Mat frame_ink = Mat(Size(IMAGE_WIDTH,IMAGE_HEIGHT), CV_8UC3);
 
+// frame_ink.setTo(BLACK);
 
 // TODO: Implement other functions here
 // set_stylus_width
 // set_stylus_color
 // erase
-// clear
+// clear/reset ink frame
 //
 
 
@@ -106,17 +109,13 @@ vector<Point> find_stylus_contour(Mat *frame_camera){
 
 
 void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
-
-    // Create the initial ink frame and set it to all black
-    Mat frame_ink = Mat(Size(IMAGE_WIDTH,IMAGE_HEIGHT), CV_8UC3);
-    frame_ink.setTo(BLACK);
     (*frame_projector).setTo(BLACK);
 
     // Find the contour with the largest area
     vector<Point> contour = find_stylus_contour(frame_camera);
     if(contour.empty()){
-        // The point wasn't found... No need to draw anything I guess
-        prev_pt = Point(-1,-1);
+        // Stylus wasn't found, so just paint the ink frame and return
+        add(*frame_projector, frame_ink, *frame_projector);
         return;
     }
 
@@ -133,7 +132,6 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
     // Draw the center point of the stylus
     circle(*frame_camera, centroid, 5, BLUE, -1);
-
     circle(*frame_camera, centroid, stylus_enclosing_radius, Scalar(200, 200, 0), 2);
 
 
@@ -152,8 +150,11 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
     // draw line from prev_pt to centroid, if prev_pt exists
     if(prev_pt.x != -1){
-        line(*frame_projector, prev_pt, centroid_transformed, stylus_color, stylus_width, 8);
+        line(frame_ink, prev_pt, centroid_transformed, stylus_color, stylus_width, 8);
     }
+
+    // Combine frame_ink with the projector frame
+    add(*frame_projector, frame_ink, *frame_projector);
 
     // Save the transformed centroid as the previous point
     prev_pt = centroid_transformed;
