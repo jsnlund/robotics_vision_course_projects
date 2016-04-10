@@ -1,11 +1,12 @@
 //create empty mat same size as chess
 
+Mat frame_calibration = Mat(CALIBRATION_FRAME_SIZE, CV_8UC3);
+frame_calibration.setTo(BLACK);
 
-cv:Mat mat;
-int rows = mat.rows;
-int cols = mat.cols;
+// int rows = frame_calibration.rows;
+// int cols = frame_calibration.cols;
 
-cv::Size s = frame_camera.size();
+cv::Size s = frame_calibration.size();
 height = s.height;
 width = s.width;
 
@@ -27,3 +28,6 @@ for (int i = 0; i < rows; ++i){
 		}
 	}
 }
+
+
+frame_calibration.copyTo(*frame_projector);
