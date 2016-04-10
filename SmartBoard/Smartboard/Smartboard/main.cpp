@@ -23,7 +23,7 @@ int const KEY_D = 100; // draw
 int const KEY_E = 101; // erase
 
 int const KEY_Q = 113; // quit/stop
-int const KEY_W = 119; //
+int const KEY_W = 119; // wipe/clear/reset the board
 
 
 
@@ -130,6 +130,7 @@ int main(){
                 }
                 break;
             case KEY_1:
+            case KEY_W:
                 clear(&frame_projector);
                 // Automatically go to draw mode
                 processingMode = KEY_D;

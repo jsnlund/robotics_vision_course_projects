@@ -47,6 +47,10 @@ vector<Scalar> stylus_colors = {
 Scalar stylus_color = RED;
 int stylus_width = 3;
 
+// Have a saved color, for when switching between erase and draw
+Scalar stylus_color_saved = RED;
+int stylus_width_saved = 3;
+
 // Create the initial ink frame and set it to all black
 Mat frame_ink = Mat(Size(IMAGE_WIDTH,IMAGE_HEIGHT), CV_8UC3);
 
@@ -60,7 +64,7 @@ Mat frame_ink = Mat(Size(IMAGE_WIDTH,IMAGE_HEIGHT), CV_8UC3);
 //
 
 
-// TODO: Create helper function to find the stylus, then have draw and erase both use it
+// Create helper function to find the stylus, then have draw and erase both use it
 // Since this is a private function, do not expose it in the header
 vector<Point> find_stylus_contour(Mat *frame_camera){
     Mat frame_camera_hsv, frame_camera_hsv_binary;
@@ -119,10 +123,6 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
         return;
     }
 
-
-
-    // TODO: Pull the stylus drawing code into one function, so it isn't repeated in draw and erase?
-
     // Get centroid and enclosing circle radius of contour
     Point2f centroid;
     float stylus_enclosing_radius;
@@ -132,15 +132,11 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
     // Moments ms = moments(contour);
     // centroid = Point2d(ms.m10 / ms.m00, ms.m01 / ms.m00);
 
-
     // Draw the center point of the stylus
     circle(*frame_camera, centroid, 5, BLUE, -1);
     circle(*frame_camera, centroid, stylus_enclosing_radius, Scalar(200, 200, 0), 2);
 
-
-
     // TODO: if point inside projector area - secondary priority
-
 
     // transform centroid to projector frame - prev_pt will already be in projector frame
     vector<Point2f> points, points_transformed;
@@ -184,10 +180,40 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 // TODO:
 void erase(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
+    // An erase is fundamentally just drawing black, with the stylus looking red
+    set_stylus_color_saved(stylus_color);
+    set_stylus_width_saved(stylus_width);
 
+    set_stylus_color(BLACK);
+    set_stylus_width(30);
 
+    draw(frame_camera, frame_projector, perspective_transform);
 
+    set_stylus_color(stylus_color_saved);
+    set_stylus_width(stylus_width_saved);
+
+    // TODO: create getters!
 }
+
+
+void set_stylus_color(Scalar color){
+    stylus_color = color;
+}
+
+void set_stylus_width(int width){
+    stylus_width = width;
+}
+
+
+
+void set_stylus_color_saved(Scalar color){
+    stylus_color_saved = color;
+}
+
+void set_stylus_width_saved(int width){
+    stylus_width_saved = width;
+}
+
 
 
 void clear(Mat *frame_projector) {

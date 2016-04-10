@@ -15,6 +15,13 @@ void erase(cv::Mat *frame_camera, cv::Mat *frame_projector, cv::Mat perspective_
 void clear(cv::Mat *frame_projector);
 
 
+void set_stylus_color(cv::Scalar color);
+void set_stylus_width(int width);
+
+void set_stylus_color_saved(cv::Scalar color);
+void set_stylus_width_saved(int width);
+
+
 // TODO: Implement other functions here
 // set_stylus_width
 // set_stylus_color
