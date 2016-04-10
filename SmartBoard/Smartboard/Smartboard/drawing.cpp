@@ -146,7 +146,7 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
     // use perspectiveTransform() to transform only select points instead of an entire image
     perspectiveTransform(points, points_transformed, perspective_transform);
 
-    Point2f centroid_transformed = points[0];
+    Point2f centroid_transformed = points_transformed[0];
 
     // draw line from prev_pt to centroid, if prev_pt exists
     if(prev_pt.x != -1){

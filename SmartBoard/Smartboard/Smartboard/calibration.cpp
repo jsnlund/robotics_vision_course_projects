@@ -87,85 +87,104 @@ Mat chessboard_calibration(Mat *frame_camera, Mat *frame_projector, bool calcula
     bool pattern_was_found = false;
     pattern_was_found = findChessboardCorners(*frame_camera, PATTERN_SIZE, corners, FIND_CHESSBOARD_FLAGS);
 
-    if(pattern_was_found){
-        cout << "chessboard found!" << endl;
-
-        // Iterate through the corners to extrapolate the outer-most edges of the chessboard
-        Point2f upper_left, upper_right, lower_left, lower_right;
-        Point2f upper_left_inner, upper_right_inner, lower_left_inner, lower_right_inner;
-
-        // the chessboard corners are the inner corners. We need the outer border of the chessboard. This means outer layer of chessboard squares plus the square-wide white border
-
-        // Extrapolate
-
-        // outer - inner = diff
-
-        // Grab the outer and inner corners of the chessboard
-        upper_left = corners[0];
-        upper_left_inner = corners[CHESSBOARD_CORNERS_COLS+1];
-
-        upper_right = corners[CHESSBOARD_CORNERS_COLS-1];
-        upper_right_inner = corners[2*CHESSBOARD_CORNERS_COLS-2];
-
-        lower_left = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS];
-        lower_left_inner = corners[(CHESSBOARD_CORNERS_ROWS-2)*CHESSBOARD_CORNERS_COLS+1];
-
-        lower_right = corners[CHESSBOARD_CORNERS_ROWS*CHESSBOARD_CORNERS_COLS-1];
-        lower_right_inner = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS-2];
-
-        circle(*frame_camera, upper_left, 5, ORANGE, -1);
-        circle(*frame_camera, upper_right, 5, ORANGE, -1);
-        circle(*frame_camera, lower_left, 5, ORANGE, -1);
-        circle(*frame_camera, lower_right, 5, ORANGE, -1);
-
-        circle(*frame_camera, upper_left_inner, 5, BLUE, -1);
-        circle(*frame_camera, upper_right_inner, 5, BLUE, -1);
-        circle(*frame_camera, lower_left_inner, 5, BLUE, -1);
-        circle(*frame_camera, lower_right_inner, 5, BLUE, -1);
-
-        // Calculate the new
-        upper_left.x += 2*(upper_left.x - upper_left_inner.x);
-        upper_left.y += 2*(upper_left.y - upper_left_inner.y);
-        upper_right.x += 2*(upper_right.x - upper_right_inner.x);
-        upper_right.y += 2*(upper_right.y - upper_right_inner.y);
-        lower_left.x += 2*(lower_left.x - lower_left_inner.x);
-        lower_left.y += 2*(lower_left.y - lower_left_inner.y);
-        lower_right.x += 2*(lower_right.x - lower_right_inner.x);
-        lower_right.y += 2*(lower_right.y - lower_right_inner.y);
-
-        circle(*frame_camera, upper_left, 5, RED, -1);
-        circle(*frame_camera, upper_right, 5, RED, -1);
-        circle(*frame_camera, lower_left, 5, RED, -1);
-        circle(*frame_camera, lower_right, 5, RED, -1);
-
-
-        // TODO: Check the extrapolated chessboard points
-
-
-        // Draw blue border around projector image to show it has been found
-        // line(*frame_projector, Point2f(), centroid_transformed, stylus_color, stylus_width, 8);
-        // rectangle(*frame_projector, Point2f(), centroid_transformed, stylus_color, stylus_width, 3);
-        rectangle(*frame_projector, Rect(0,0,IMAGE_WIDTH,IMAGE_HEIGHT), BLUE, 10`);
-
-
-
-
-        // imshow("Verify Chessboard", *frame_camera);
-
-
-
-        // The chessboard
-
-        return Mat();
-    }
-    else {
-        cout << "chessboard not found!" << endl;
+    if(!pattern_was_found){
+        // cout << "chessboard not found!" << endl;
         // cout << "Could not find chessboard!!!" << endl;
         return Mat();
     }
 
+    // cout << "chessboard found!" << endl;
+
+    // Iterate through the corners to extrapolate the outer-most edges of the chessboard
+    Point2f upper_left, upper_right, lower_left, lower_right;
+    Point2f upper_left_inner, upper_right_inner, lower_left_inner, lower_right_inner;
+
+    // the chessboard corners are the inner corners. We need the outer border of the chessboard. This means outer layer of chessboard squares plus the square-wide white border
+
+    // Extrapolate
+
+    // outer - inner = diff
+
+    // Grab the outer and inner corners of the chessboard
+    upper_left = corners[0];
+    upper_left_inner = corners[CHESSBOARD_CORNERS_COLS+1];
+
+    upper_right = corners[CHESSBOARD_CORNERS_COLS-1];
+    upper_right_inner = corners[2*CHESSBOARD_CORNERS_COLS-2];
+
+    lower_left = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS];
+    lower_left_inner = corners[(CHESSBOARD_CORNERS_ROWS-2)*CHESSBOARD_CORNERS_COLS+1];
+
+    lower_right = corners[CHESSBOARD_CORNERS_ROWS*CHESSBOARD_CORNERS_COLS-1];
+    lower_right_inner = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS-2];
+
+    circle(*frame_camera, upper_left, 5, ORANGE, -1);
+    circle(*frame_camera, upper_right, 5, ORANGE, -1);
+    circle(*frame_camera, lower_left, 5, ORANGE, -1);
+    circle(*frame_camera, lower_right, 5, ORANGE, -1);
+
+    circle(*frame_camera, upper_left_inner, 5, BLUE, -1);
+    circle(*frame_camera, upper_right_inner, 5, BLUE, -1);
+    circle(*frame_camera, lower_left_inner, 5, BLUE, -1);
+    circle(*frame_camera, lower_right_inner, 5, BLUE, -1);
+
+    // Calculate the new
+    upper_left.x += 2*(upper_left.x - upper_left_inner.x);
+    upper_left.y += 2*(upper_left.y - upper_left_inner.y);
+    upper_right.x += 2*(upper_right.x - upper_right_inner.x);
+    upper_right.y += 2*(upper_right.y - upper_right_inner.y);
+    lower_left.x += 2*(lower_left.x - lower_left_inner.x);
+    lower_left.y += 2*(lower_left.y - lower_left_inner.y);
+    lower_right.x += 2*(lower_right.x - lower_right_inner.x);
+    lower_right.y += 2*(lower_right.y - lower_right_inner.y);
+
+    circle(*frame_camera, upper_left, 5, RED, -1);
+    circle(*frame_camera, upper_right, 5, RED, -1);
+    circle(*frame_camera, lower_left, 5, RED, -1);
+    circle(*frame_camera, lower_right, 5, RED, -1);
 
 
+    // TODO: Check the extrapolated chessboard points
+
+
+    // Draw blue border around projector image to show it has been found
+    rectangle(*frame_projector, Rect(0,0,IMAGE_WIDTH,IMAGE_HEIGHT), BLUE, 10);
+    // imshow("Verify Chessboard", *frame_camera);
+
+
+    if(calculate_transform){
+        // The user indicated that they want to use the current contour as the calibration image.
+        // So calculate the perspective transform!
+
+        // Get 4 points for perspective transform (the four corners of the image)
+        vector<Point2f> edges_calibration_rectangle, edges_projector;
+
+        // Map those 4 corners to the edges of a blank frame
+        edges_projector.push_back(Point2f(0, 0)); // Upper left
+        edges_projector.push_back(Point2f(IMAGE_WIDTH-1, 0)); // Upper right
+        edges_projector.push_back(Point2f(0, IMAGE_HEIGHT-1)); // Lower left
+        edges_projector.push_back(Point2f(IMAGE_WIDTH-1, IMAGE_HEIGHT-1)); // Lower right
+
+        // Save off all 4 corners of the chessboard and use them for creating the perspective transform
+        // Make sure the order matches the order of edges_projector
+        edges_calibration_rectangle.push_back(upper_left);
+        edges_calibration_rectangle.push_back(upper_right);
+        edges_calibration_rectangle.push_back(lower_left);
+        edges_calibration_rectangle.push_back(lower_right);
+
+        // Calculate the perspective transform
+        Mat transform_matrix = getPerspectiveTransform(edges_calibration_rectangle, edges_projector);
+
+        // // Test the perspective transform on the calibration image
+        // Mat frame_perspective_test;
+        // warpPerspective(frame_camera_original, frame_perspective_test, transform_matrix, Size(IMAGE_WIDTH, IMAGE_HEIGHT));
+        // imshow("Perspective Transform", frame_perspective_test);
+
+        return transform_matrix;
+    }
+    else {
+        return Mat();
+    }
 }
 
 

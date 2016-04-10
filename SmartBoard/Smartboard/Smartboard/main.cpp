@@ -72,10 +72,11 @@ int main(){
     Mat frame_camera = Mat(Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_8UC3);
     frame_camera.setTo(ORANGE);
 
-    // if(FULLSCREEN){
-    //     namedWindow("Projector", CV_WINDOW_NORMAL);
-    //     cvSetWindowProperty("Projector", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
-    // }
+    const bool FULLSCREEN = true;
+    if(FULLSCREEN){
+        namedWindow("Projector", CV_WINDOW_NORMAL);
+        cvSetWindowProperty("Projector", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+    }
 
 
     // Set up processing controls
