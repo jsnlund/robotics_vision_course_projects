@@ -12,6 +12,8 @@ using namespace std;
 ////  Define constants for the main control loop
 //
 
+const bool FULLSCREEN = false;
+
 // Keyboard codes
 int const ESC_KEY = 27; // Exit program
 int const SPACE_KEY = 32; // capture perspective transform
@@ -72,7 +74,6 @@ int main(){
     Mat frame_camera = Mat(Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_8UC3);
     frame_camera.setTo(ORANGE);
 
-    const bool FULLSCREEN = true;
     if(FULLSCREEN){
         namedWindow("Projector", CV_WINDOW_NORMAL);
         cvSetWindowProperty("Projector", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);

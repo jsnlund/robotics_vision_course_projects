@@ -23,6 +23,9 @@ const Size CALIBRATION_FRAME_SIZE = Size(IMAGE_WIDTH,IMAGE_HEIGHT);
 
 
 
+// int const CHESSBOARD_COLUMNS = 8;
+// int const CHESSBOARD_ROWS = 6;
+
 int const CHESSBOARD_COLUMNS = 16;
 int const CHESSBOARD_ROWS = 12;
 
@@ -95,9 +98,9 @@ Mat chessboard_calibration(Mat *frame_camera, Mat *frame_projector, bool calcula
 
     // cout << "chessboard found!" << endl;
 
-    // Iterate through the corners to extrapolate the outer-most edges of the chessboard
-    Point2f upper_left, upper_right, lower_left, lower_right;
-    Point2f upper_left_inner, upper_right_inner, lower_left_inner, lower_right_inner;
+    // extrapolate the outer-most edges of the chessboard
+    Point2f orange_corner, blue_corner, red_corner, green_corner;
+    Point2f orange_corner_inner, blue_corner_inner, red_corner_inner, green_corner_inner;
 
     // the chessboard corners are the inner corners. We need the outer border of the chessboard. This means outer layer of chessboard squares plus the square-wide white border
 
@@ -105,47 +108,101 @@ Mat chessboard_calibration(Mat *frame_camera, Mat *frame_projector, bool calcula
 
     // outer - inner = diff
 
+    // We can't guarantee the order of the chessbord corners
+    // So name them colors until we can check
+
     // Grab the outer and inner corners of the chessboard
-    upper_left = corners[0];
-    upper_left_inner = corners[CHESSBOARD_CORNERS_COLS+1];
+    orange_corner = corners[0];
+    orange_corner_inner = corners[CHESSBOARD_CORNERS_COLS+1];
 
-    upper_right = corners[CHESSBOARD_CORNERS_COLS-1];
-    upper_right_inner = corners[2*CHESSBOARD_CORNERS_COLS-2];
+    blue_corner = corners[CHESSBOARD_CORNERS_COLS-1];
+    blue_corner_inner = corners[2*CHESSBOARD_CORNERS_COLS-2];
 
-    lower_left = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS];
-    lower_left_inner = corners[(CHESSBOARD_CORNERS_ROWS-2)*CHESSBOARD_CORNERS_COLS+1];
+    red_corner = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS];
+    red_corner_inner = corners[(CHESSBOARD_CORNERS_ROWS-2)*CHESSBOARD_CORNERS_COLS+1];
 
-    lower_right = corners[CHESSBOARD_CORNERS_ROWS*CHESSBOARD_CORNERS_COLS-1];
-    lower_right_inner = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS-2];
+    green_corner = corners[CHESSBOARD_CORNERS_ROWS*CHESSBOARD_CORNERS_COLS-1];
+    green_corner_inner = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS-2];
 
-    circle(*frame_camera, upper_left, 5, ORANGE, -1);
-    circle(*frame_camera, upper_right, 5, ORANGE, -1);
-    circle(*frame_camera, lower_left, 5, ORANGE, -1);
-    circle(*frame_camera, lower_right, 5, ORANGE, -1);
+    circle(*frame_camera, orange_corner, 5, ORANGE, -1);
+    circle(*frame_camera, blue_corner, 5, BLUE, -1);
+    circle(*frame_camera, red_corner, 5, RED, -1);
+    circle(*frame_camera, green_corner, 5, GREEN, -1);
 
-    circle(*frame_camera, upper_left_inner, 5, BLUE, -1);
-    circle(*frame_camera, upper_right_inner, 5, BLUE, -1);
-    circle(*frame_camera, lower_left_inner, 5, BLUE, -1);
-    circle(*frame_camera, lower_right_inner, 5, BLUE, -1);
+    circle(*frame_camera, orange_corner_inner, 5, ORANGE, -1);
+    circle(*frame_camera, blue_corner_inner, 5, BLUE, -1);
+    circle(*frame_camera, red_corner_inner, 5, RED, -1);
+    circle(*frame_camera, green_corner_inner, 5, GREEN, -1);
 
-    // Calculate the new
-    upper_left.x += 2*(upper_left.x - upper_left_inner.x);
-    upper_left.y += 2*(upper_left.y - upper_left_inner.y);
-    upper_right.x += 2*(upper_right.x - upper_right_inner.x);
-    upper_right.y += 2*(upper_right.y - upper_right_inner.y);
-    lower_left.x += 2*(lower_left.x - lower_left_inner.x);
-    lower_left.y += 2*(lower_left.y - lower_left_inner.y);
-    lower_right.x += 2*(lower_right.x - lower_right_inner.x);
-    lower_right.y += 2*(lower_right.y - lower_right_inner.y);
+    // Extrapolate the corners to find the outer edge of the projector frame
+    orange_corner.x += 2*(orange_corner.x - orange_corner_inner.x);
+    orange_corner.y += 2*(orange_corner.y - orange_corner_inner.y);
+    blue_corner.x += 2*(blue_corner.x - blue_corner_inner.x);
+    blue_corner.y += 2*(blue_corner.y - blue_corner_inner.y);
+    red_corner.x += 2*(red_corner.x - red_corner_inner.x);
+    red_corner.y += 2*(red_corner.y - red_corner_inner.y);
+    green_corner.x += 2*(green_corner.x - green_corner_inner.x);
+    green_corner.y += 2*(green_corner.y - green_corner_inner.y);
 
-    circle(*frame_camera, upper_left, 5, RED, -1);
-    circle(*frame_camera, upper_right, 5, RED, -1);
-    circle(*frame_camera, lower_left, 5, RED, -1);
-    circle(*frame_camera, lower_right, 5, RED, -1);
+    circle(*frame_camera, orange_corner, 5, ORANGE, -1);
+    circle(*frame_camera, blue_corner, 5, BLUE, -1);
+    circle(*frame_camera, red_corner, 5, RED, -1);
+    circle(*frame_camera, green_corner, 5, GREEN, -1);
 
 
     // TODO: Check the extrapolated chessboard points
 
+
+    // Figure out which colors are which corners
+    Point2f upper_left, upper_right, lower_left, lower_right;
+
+
+
+    vector<Point2f> color_corners = {
+        orange_corner,
+        blue_corner,
+        red_corner,
+        green_corner
+    };
+
+    // Calculate the centroid of the chessboard
+    Point2f chessboard_centroid = Point2f(0,0);
+    for (int i = 0; i < color_corners.size(); ++i) {
+        chessboard_centroid.x += color_corners[i].x;
+        chessboard_centroid.y += color_corners[i].y;
+    }
+    chessboard_centroid.x /= color_corners.size();
+    chessboard_centroid.y /= color_corners.size();
+
+
+
+    for (int i = 0; i < color_corners.size(); ++i) {
+        Point2f curr_corner = color_corners[i];
+
+        if(curr_corner.x > chessboard_centroid.x){
+            if(curr_corner.y > chessboard_centroid.y){
+                lower_right = curr_corner;
+            }
+            else {
+                upper_right = curr_corner;
+            }
+        }
+        else {
+            if(curr_corner.y > chessboard_centroid.y){
+                lower_left = curr_corner;
+            }
+            else {
+                upper_left = curr_corner;
+            }
+        }
+    }
+
+
+    // Draw where the colors *should* be
+    circle(*frame_camera, upper_left, 10, ORANGE, 2);
+    circle(*frame_camera, upper_right, 10, BLUE, 2);
+    circle(*frame_camera, lower_left, 10, RED, 2);
+    circle(*frame_camera, lower_right, 10, GREEN, 2);
 
     // Draw blue border around projector image to show it has been found
     rectangle(*frame_projector, Rect(0,0,IMAGE_WIDTH,IMAGE_HEIGHT), BLUE, 10);
