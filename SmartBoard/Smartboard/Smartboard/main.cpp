@@ -13,8 +13,18 @@ using namespace std;
 //
 
 // Keyboard codes
-int const ESC_KEY = 27;
-int const SPACE_KEY = 32;
+int const ESC_KEY = 27; // Exit program
+int const SPACE_KEY = 32; // capture perspective transform
+
+int const KEY_C = 99; // enter calibrate mode
+int const KEY_D = 100; // draw
+int const KEY_E = 101; // erase
+
+int const KEY_Q = 113; // quit/stop
+int const KEY_W = 119; //
+
+
+
 int const KEY_1 = 49; // 1
 int const KEY_2 = 50; // 2
 int const KEY_3 = 51; // 3
@@ -24,8 +34,6 @@ int const KEY_6 = 54; // 6
 int const KEY_7 = 55; // 7
 int const KEY_8 = 56; // 8
 int const KEY_9 = 57; // 9
-int const KEY_C = 99; // c
-
 
 
 
@@ -99,7 +107,7 @@ int main(){
             //
             // Drawing mode
             //
-            case KEY_1:
+            case KEY_D:
                 if(perspective_transform.empty()){
                     cout << "perspective_transform has not been calculated yet! Please calibrate" << endl;
                     // Reset processing mode
