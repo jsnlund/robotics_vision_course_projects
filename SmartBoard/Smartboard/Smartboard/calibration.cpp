@@ -27,6 +27,9 @@ int const CHESSBOARD_COLUMNS = 16;
 int const CHESSBOARD_ROWS = 12;
 
 
+int const CHESSBOARD_CORNERS_COLS = CHESSBOARD_COLUMNS - 1;
+int const CHESSBOARD_CORNERS_ROWS = CHESSBOARD_ROWS - 1;
+
 
 
 
@@ -35,6 +38,7 @@ int const CHESSBOARD_ROWS = 12;
 
 
 // Create a chessboard image based on the image width and height
+// Creates a 16x12 chessboard with white border
 void generate_chessboard(Mat *frame_projector){
     (*frame_projector).setTo(WHITE);
 
@@ -87,6 +91,68 @@ Mat chessboard_calibration(Mat *frame_camera, Mat *frame_projector, bool calcula
         cout << "chessboard found!" << endl;
 
         // Iterate through the corners to extrapolate the outer-most edges of the chessboard
+        Point2f upper_left, upper_right, lower_left, lower_right;
+        Point2f upper_left_inner, upper_right_inner, lower_left_inner, lower_right_inner;
+
+        // the chessboard corners are the inner corners. We need the outer border of the chessboard. This means outer layer of chessboard squares plus the square-wide white border
+
+        // Extrapolate
+
+        // outer - inner = diff
+
+        // Grab the outer and inner corners of the chessboard
+        upper_left = corners[0];
+        upper_left_inner = corners[CHESSBOARD_CORNERS_COLS+1];
+
+        upper_right = corners[CHESSBOARD_CORNERS_COLS-1];
+        upper_right_inner = corners[2*CHESSBOARD_CORNERS_COLS-2];
+
+        lower_left = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS];
+        lower_left_inner = corners[(CHESSBOARD_CORNERS_ROWS-2)*CHESSBOARD_CORNERS_COLS+1];
+
+        lower_right = corners[CHESSBOARD_CORNERS_ROWS*CHESSBOARD_CORNERS_COLS-1];
+        lower_right_inner = corners[(CHESSBOARD_CORNERS_ROWS-1)*CHESSBOARD_CORNERS_COLS-2];
+
+        circle(*frame_camera, upper_left, 5, ORANGE, -1);
+        circle(*frame_camera, upper_right, 5, ORANGE, -1);
+        circle(*frame_camera, lower_left, 5, ORANGE, -1);
+        circle(*frame_camera, lower_right, 5, ORANGE, -1);
+
+        circle(*frame_camera, upper_left_inner, 5, BLUE, -1);
+        circle(*frame_camera, upper_right_inner, 5, BLUE, -1);
+        circle(*frame_camera, lower_left_inner, 5, BLUE, -1);
+        circle(*frame_camera, lower_right_inner, 5, BLUE, -1);
+
+        // Calculate the new
+        upper_left.x += 2*(upper_left.x - upper_left_inner.x);
+        upper_left.y += 2*(upper_left.y - upper_left_inner.y);
+        upper_right.x += 2*(upper_right.x - upper_right_inner.x);
+        upper_right.y += 2*(upper_right.y - upper_right_inner.y);
+        lower_left.x += 2*(lower_left.x - lower_left_inner.x);
+        lower_left.y += 2*(lower_left.y - lower_left_inner.y);
+        lower_right.x += 2*(lower_right.x - lower_right_inner.x);
+        lower_right.y += 2*(lower_right.y - lower_right_inner.y);
+
+        circle(*frame_camera, upper_left, 5, RED, -1);
+        circle(*frame_camera, upper_right, 5, RED, -1);
+        circle(*frame_camera, lower_left, 5, RED, -1);
+        circle(*frame_camera, lower_right, 5, RED, -1);
+
+
+        // TODO: Check the extrapolated chessboard points
+
+
+        // Draw blue border around projector image to show it has been found
+        // line(*frame_projector, Point2f(), centroid_transformed, stylus_color, stylus_width, 8);
+        // rectangle(*frame_projector, Point2f(), centroid_transformed, stylus_color, stylus_width, 3);
+        rectangle(*frame_projector, Rect(0,0,IMAGE_WIDTH,IMAGE_HEIGHT), BLUE, 10`);
+
+
+
+
+        // imshow("Verify Chessboard", *frame_camera);
+
+
 
         // The chessboard
 
