@@ -1,4 +1,5 @@
 #include <opencv2/opencv.hpp>
+#include <iomanip>
 
 #include "calibration.h"
 #include "globals.h"
@@ -15,27 +16,99 @@ const int MAX_SAT_CALIB = (int) 1.0 * 255;
 const int MIN_VAL_CALIB = (int) 0.1 * 255;
 const int MAX_VAL_CALIB = (int) 1.0 * 255;
 
-// const Size CALIBRATION_FRAME_SIZE = Size(IMAGE_WIDTH,IMAGE_HEIGHT);
-const Size CALIBRATION_FRAME_SIZE = Size(IMAGE_WIDTH*1.8,IMAGE_HEIGHT*1.8);
+// Make the calibration image bigger, so that is will sho up
+// TODO: If this is bigger, it makes it so that other normal-sized images can't operate on it
+const Size CALIBRATION_FRAME_SIZE = Size(IMAGE_WIDTH,IMAGE_HEIGHT);
+// const Size CALIBRATION_FRAME_SIZE = Size(IMAGE_WIDTH*1.8,IMAGE_HEIGHT*1.8);
+
+
+
+int const CHESSBOARD_COLUMNS = 16;
+int const CHESSBOARD_ROWS = 12;
+
+
 
 
 
 // if calculate_transform is false, a green rectangle is produced on the projector frame and the code tries to find it in the camera frame (returns an empty Mat)
 // if calculate_transform is true, it takes the currently detected calibration rectangle and calculates the perspective transform Mat from that
 
-Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate_transform) {
+
+// Create a chessboard image based on the image width and height
+void generate_chessboard(Mat *frame_projector){
+    (*frame_projector).setTo(WHITE);
+
+    int rows = CHESSBOARD_ROWS+2;
+    int cols = CHESSBOARD_COLUMNS+2;
+
+    int sq = IMAGE_WIDTH/cols;
+    int sq2 = sq - 1;
+    int s;
+    // int border = sq2
+
+    for (int i = 1; i < rows-1; ++i){
+        if(i % 2 == 0){
+            s = 1;
+        }
+        else{
+            s = 2;
+        }
+        for (int j = 1; j < cols-1; ++j){
+            if((j-s) % 2 == 0){
+                int x = j*sq;
+                int y = i*sq;
+                rectangle((*frame_projector), Point(x,y), Point(x+sq2,y+sq2), BLACK, CV_FILLED);//, int lineType=8, int shift=0)
+            }
+        }
+    }
+}
+
+
+
+Mat chessboard_calibration(Mat *frame_camera, Mat *frame_projector, bool calculate_transform) {
     // Save off a pristine version of the input camera image
     Mat frame_camera_original;
     (*frame_camera).copyTo(frame_camera_original);
 
-    // Create the calibration image
-    Mat frame_calibration = Mat(CALIBRATION_FRAME_SIZE, CV_8UC3);
+    // Paint a chessboard to the projector
+    generate_chessboard(frame_projector);
 
-    // New calibration image
-    frame_calibration.setTo(GREEN);
+    Size const PATTERN_SIZE =  Size(CHESSBOARD_COLUMNS-1,CHESSBOARD_ROWS-1);
+    int const FIND_CHESSBOARD_FLAGS = CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE;
 
-    // Copy the calibration rectangle to the projector frame
-    frame_calibration.copyTo(*frame_projector);
+    // Figure out how many corners are in the chessboard
+    // int const CHESSBOARD_CORNERS_COUNT = (CHESSBOARD_ROWS-1)*(CHESSBOARD_COLUMNS-1);
+
+    vector<Point2f> corners;
+    bool pattern_was_found = false;
+    pattern_was_found = findChessboardCorners(*frame_camera, PATTERN_SIZE, corners, FIND_CHESSBOARD_FLAGS);
+
+    if(pattern_was_found){
+        cout << "chessboard found!" << endl;
+
+        // Iterate through the corners to extrapolate the outer-most edges of the chessboard
+
+        // The chessboard
+
+        return Mat();
+    }
+    else {
+        cout << "chessboard not found!" << endl;
+        // cout << "Could not find chessboard!!!" << endl;
+        return Mat();
+    }
+
+
+
+}
+
+
+
+
+Mat green_rectangle_calibration(Mat *frame_camera, Mat *frame_projector, bool calculate_transform) {
+    // Save off a pristine version of the input camera image
+    Mat frame_camera_original;
+    (*frame_camera).copyTo(frame_camera_original);
 
     // This will hold what we think is the calibration green square contour
     vector<Point> current_calibration_cotour;
@@ -98,8 +171,62 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
         }
     }
 
+
+    // Print what the center of the camera sees in RGB and HSV
+    Point2i image_center = Point2i(IMAGE_WIDTH/2, IMAGE_HEIGHT/2);
+
+    stringstream coordinates, hsv_pixel_value, bgr_pixel_value;
+    Vec3b hsv_pixel = frame_camera_hsv.at<Vec3b>(image_center.x, image_center.y);
+    Vec3b bgr_pixel = frame_camera_original.at<Vec3b>(image_center.x, image_center.y);
+
+    cout << "frame_camera_original: " << endl;
+    cout << frame_camera_original.size() << endl;
+    // cout << frame_camera_original.shape << endl;
+    // cout << frame_camera_original.dtype() << endl;
+
+    // Channels is type()/2 + 1
+    // type()%2 = 8U if 0, 16U if 2, 32F if 5, 64F if 6
+    CV_Assert(frame_camera_original.type() == CV_8UC3);
+
+    circle(frame_contours, Point(320, 240), 2, ORANGE, -1);
+    circle(frame_camera_original, Point(320, 240), 10, ORANGE, 2);
+    imshow("Real", frame_camera_original);
+
+    // cout << CV_32F << endl;
+    // cout << CV_32U << endl;
+    // cout << CV_ << endl;
+    // cout << frame_camera_original.rows << endl;
+    // cout << frame_camera_original.cols << endl;
+    // cout << frame_camera_original.at<uint>(0,0) << endl;
+    // cout << frame_camera_original.at<float>(0,0) << endl;
+    // cout << frame_camera_original.at<double>(0,0) << endl;
+    // cout << frame_camera_original.at<char>(0,0) << endl;
+    // cout << frame_camera_original.height << endl;
+    // cout << frame_camera_original.width << endl;
+    // cout << frame_camera_hsv.type() << endl;
+    // cout << frame_camera_hsv.type() << endl;
+
+    cout << "hsv: " << hsv_pixel << endl;
+    cout << "bgr: " << bgr_pixel << endl;
+
+
+
+
+
+    hsv_pixel_value << "HSV at (" << image_center.x << "," << image_center.y << "): (" << setprecision(3) << (int)hsv_pixel[0] << ", " << (int)hsv_pixel[1] << ", " << (int)hsv_pixel[2] << ")";
+    bgr_pixel_value << "BGR at (" << image_center.x << "," << image_center.y << "): (" << setprecision(3) << (int)bgr_pixel[0] << ", " << (int)bgr_pixel[1] << ", " << (int)bgr_pixel[2] << ")";
+
+    putText(frame_contours, hsv_pixel_value.str(), Point2f(10, IMAGE_HEIGHT - 20), FONT_HERSHEY_SIMPLEX, 0.6, ORANGE, 2);
+    putText(frame_contours, bgr_pixel_value.str(), Point2f(10, IMAGE_HEIGHT - 40), FONT_HERSHEY_SIMPLEX, 0.6, ORANGE, 2);
+
+
+    // putText(frame_contours, coordinates_left, Point2f(image_points_left[i].x - 10, image_points_left[i].y - 30), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0,165,255), 2);
+
+
     // Set the camera frame output
     frame_contours.copyTo(*frame_camera);
+
+
 
     if(calculate_transform){
         // The user indicated that they want to use the current contour as the calibration image.
@@ -235,11 +362,10 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
         // Calculate the perspective transform
         Mat transform_matrix = getPerspectiveTransform(edges_calibration_rectangle, edges_projector);
 
-        // Test the perspective transform on the calibration image
-        Mat frame_perspective_test;
-        warpPerspective(frame_camera_original, frame_perspective_test, transform_matrix, Size(IMAGE_WIDTH, IMAGE_HEIGHT));
-
-        imshow("Perspective Transform", frame_perspective_test);
+        // // Test the perspective transform on the calibration image
+        // Mat frame_perspective_test;
+        // warpPerspective(frame_camera_original, frame_perspective_test, transform_matrix, Size(IMAGE_WIDTH, IMAGE_HEIGHT));
+        // imshow("Perspective Transform", frame_perspective_test);
 
         // use perspectiveTransform() to transform only select points instead of an entire image
         // perspectiveTransform(random_points, random_points_transformed, transform_matrix);
@@ -250,7 +376,21 @@ Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate
         // Return an empty matrix as the perspective transform
         return Mat();
     }
-
-
-
 }
+
+
+
+
+// if calculate_transform is false, a green rectangle is produced on the projector frame and the code tries to find it in the camera frame (returns an empty Mat)
+// if calculate_transform is true, it takes the currently detected calibration rectangle and calculates the perspective transform Mat from that
+
+Mat calibrate_smartboard(Mat *frame_camera, Mat *frame_projector, bool calculate_transform) {
+    // Save off a pristine version of the input camera image
+    Mat frame_camera_original;
+    (*frame_camera).copyTo(frame_camera_original);
+
+    // Calibration method
+    // return green_rectangle_calibration(frame_camera, frame_projector, calculate_transform);
+    return chessboard_calibration(frame_camera, frame_projector, calculate_transform);
+}
+

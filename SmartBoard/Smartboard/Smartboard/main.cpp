@@ -48,21 +48,22 @@ int main(){
     VideoCapture camera_2(1);
 
     // Check to see if the cameras were opened properly
-    bool camera_1_opened = false;
-    bool camera_2_opened = false;
+    // bool camera_1_opened = false;
+    // bool camera_2_opened = false;
     if(!camera_1.isOpened()) {
         cout << "Camera 1 could not be opened!" << endl;
     }
-    else{
-        camera_1_opened = true;
-    }
+    // else{
+    //     camera_1_opened = true;
+    // }
 
     if(!camera_2.isOpened()) {
         cout << "Camera 2 could not be opened!" << endl;
+        return 1;
     }
-    else{
-        camera_2_opened = true;
-    }
+    // else{
+    //     camera_2_opened = true;
+    // }
 
     // Final output of the projector
     Mat frame_projector = Mat(Size(IMAGE_WIDTH, IMAGE_HEIGHT), CV_8UC3);

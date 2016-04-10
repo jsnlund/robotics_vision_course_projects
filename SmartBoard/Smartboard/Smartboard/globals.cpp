@@ -5,6 +5,9 @@
 using namespace cv;
 
 // Input image dimensions
+// const int IMAGE_WIDTH = 1280;
+// const int IMAGE_HEIGHT = 960;
+
 const int IMAGE_WIDTH = 640;
 const int IMAGE_HEIGHT = 480;
 
