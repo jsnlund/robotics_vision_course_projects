@@ -26,6 +26,12 @@ void change_color_right();
 void change_color_left();
 
 
+void increase_stylus_width();
+void decrease_stylus_width();
+
+
+
+
 // TODO: Implement other functions here
 // set_stylus_width
 // set_stylus_color

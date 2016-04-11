@@ -82,6 +82,7 @@ int main(){
     // Set up processing controls
     int keypress = 0;
     int processingMode = 0;
+    int previous_processing_mode = -1;
 
     Mat perspective_transform;
 
@@ -144,6 +145,15 @@ int main(){
                 processingMode = KEY_D;
                 break;
 
+            case KEY_5:
+                decrease_stylus_width();
+                processingMode = previous_processing_mode;
+                break;
+            case KEY_6:
+                increase_stylus_width();
+                processingMode = previous_processing_mode;
+                break;
+
             default:
                 // Nothing is happening - just show live feed
                 break;
@@ -159,7 +169,10 @@ int main(){
         keypress = waitKey(30);
         // If no key was pressed, it is -1
         if(keypress >= 0){
-            processingMode = keypress;
+            if(keypress != processingMode){
+                previous_processing_mode = processingMode;
+                processingMode = keypress;
+            }
         }
     }
 

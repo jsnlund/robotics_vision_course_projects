@@ -48,14 +48,15 @@ vector<Scalar> stylus_colors = {
 int stylus_colors_index = 0;
 Scalar stylus_color = stylus_colors[stylus_colors_index];
 
-
-
+// How big the blackout region is behind the stylus
+double blackout_multiplier = 2.0;
 
 int stylus_width = 3;
 
 // Have a saved color, for when switching between erase and draw
 Scalar stylus_color_saved = RED;
 int stylus_width_saved = 3;
+double blackout_multiplier_saved = 1.0;
 
 // Create the initial ink frame and set it to all black
 Mat frame_ink = Mat(Size(IMAGE_WIDTH,IMAGE_HEIGHT), CV_8UC3);
@@ -180,7 +181,7 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
     circle(frame_stylus, centroid_transformed, 5, BLUE, -1);
     // Draw a circle around the stylus
     if(PROJECTOR){
-        circle(frame_stylus, centroid_transformed, stylus_enclosing_radius*1.5 + 10, Scalar(200, 200, 0), 2);
+        circle(frame_stylus, centroid_transformed, stylus_enclosing_radius*blackout_multiplier + 10, Scalar(200, 200, 0), 2);
     }
     else {
         circle(frame_stylus, centroid_transformed, stylus_enclosing_radius, Scalar(200, 200, 0), 2);
@@ -205,7 +206,7 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 
     if(PROJECTOR){
         // Draw black over the stylus, so that the projector light does not mess up the color detection
-        circle(*frame_projector, centroid_transformed, stylus_enclosing_radius*1.5, BLACK, -1);
+        circle(*frame_projector, centroid_transformed, stylus_enclosing_radius*blackout_multiplier, BLACK, -1);
     }
 
 
@@ -219,8 +220,11 @@ void erase(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
     // An erase is fundamentally just drawing black, with the stylus looking red
     save_stylus();
 
-    set_stylus_color(BLACK);
-    set_stylus_width(30);
+    stylus_color = BLACK;
+    stylus_width = stylus_width + 30;
+    blackout_multiplier = 1.0;
+
+
 
     draw(frame_camera, frame_projector, perspective_transform);
 
@@ -228,24 +232,18 @@ void erase(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 }
 
 
-void set_stylus_color(Scalar color){
-    stylus_color = color;
-}
-
-void set_stylus_width(int width){
-    stylus_width = width;
-}
-
 // Saves the current stylus configuration
 void save_stylus() {
     stylus_width_saved = stylus_width;
     stylus_color_saved = stylus_color;
+    blackout_multiplier_saved = blackout_multiplier;
 }
 
 // Loads the saved stylus configuration
 void load_saved_stylus(){
     stylus_color = stylus_color_saved;
     stylus_width = stylus_width_saved;
+    blackout_multiplier =  blackout_multiplier_saved;
 }
 
 
@@ -260,12 +258,25 @@ void change_color_right(){
     if(stylus_colors_index >= stylus_colors.size()){
         stylus_colors_index = 0;
     }
-    set_stylus_color(stylus_colors[stylus_colors_index]);
+    stylus_color = stylus_colors[stylus_colors_index];
 };
 void change_color_left(){
     stylus_colors_index--;
     if(stylus_colors_index < 0){
         stylus_colors_index = stylus_colors.size()-1;
     }
-    set_stylus_color(stylus_colors[stylus_colors_index]);
+    stylus_color = stylus_colors[stylus_colors_index];
+};
+
+
+void increase_stylus_width(){
+    if (stylus_width < 300) {
+        stylus_width += 2;
+    }
+};
+void decrease_stylus_width(){
+    stylus_width -= 2;
+    if (stylus_width < 1) {
+        stylus_width = 1;
+    }
 };
