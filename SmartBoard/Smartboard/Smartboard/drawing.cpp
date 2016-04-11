@@ -209,22 +209,16 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
 }
 
 
-// TODO:
 void erase(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
-
     // An erase is fundamentally just drawing black, with the stylus looking red
-    set_stylus_color_saved(stylus_color);
-    set_stylus_width_saved(stylus_width);
+    save_stylus();
 
     set_stylus_color(BLACK);
     set_stylus_width(30);
 
     draw(frame_camera, frame_projector, perspective_transform);
 
-    set_stylus_color(stylus_color_saved);
-    set_stylus_width(stylus_width_saved);
-
-    // TODO: create getters!
+    load_saved_stylus();
 }
 
 
@@ -236,16 +230,17 @@ void set_stylus_width(int width){
     stylus_width = width;
 }
 
-
-
-void set_stylus_color_saved(Scalar color){
-    stylus_color_saved = color;
+// Saves the current stylus configuration
+void save_stylus() {
+    stylus_width_saved = stylus_width;
+    stylus_color_saved = stylus_color;
 }
 
-void set_stylus_width_saved(int width){
-    stylus_width_saved = width;
+// Loads the saved stylus configuration
+void load_saved_stylus(){
+    stylus_color = stylus_color_saved;
+    stylus_width = stylus_width_saved;
 }
-
 
 
 void clear(Mat *frame_projector) {

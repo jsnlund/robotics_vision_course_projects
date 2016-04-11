@@ -18,8 +18,8 @@ void clear(cv::Mat *frame_projector);
 void set_stylus_color(cv::Scalar color);
 void set_stylus_width(int width);
 
-void set_stylus_color_saved(cv::Scalar color);
-void set_stylus_width_saved(int width);
+void save_stylus();
+void load_saved_stylus();
 
 
 // TODO: Implement other functions here
