@@ -1,7 +1,7 @@
 #include <opencv2/opencv.hpp>
 
-#include "drawing.h"
 #include "globals.h"
+#include "drawing.h"
 
 using namespace std;
 using namespace cv;
@@ -66,7 +66,7 @@ Mat frame_ink = Mat(Size(IMAGE_WIDTH,IMAGE_HEIGHT), CV_8UC3);
 
 // Create helper function to find the stylus, then have draw and erase both use it
 // Since this is a private function, do not expose it in the header
-vector<Point> find_stylus_contour(Mat *frame_camera){
+vector<Point> find_stylus_contour(Mat *frame_camera, Mat perspective_transform){
     Mat frame_camera_hsv, frame_camera_hsv_binary;
     cvtColor(*frame_camera, frame_camera_hsv, COLOR_BGR2HSV);
 
@@ -93,14 +93,36 @@ vector<Point> find_stylus_contour(Mat *frame_camera){
         double largest_area = 0.0;
         int largest_contour_index = -1;
         for (int i = 0; i < contours.size(); ++i) {
-            double a = contourArea(contours[i]);
+            vector<Point> contour = contours[i];
+            // get centroid of max area contour
+            Moments ms = moments(contour);
+            Point2d centroid = Point2d(ms.m10 / ms.m00, ms.m01 / ms.m00);
+            vector<Point2d> centroid_array = {centroid};
+            vector<Point2d> centroid_array_transformed = {centroid};
+            // Check to see if the centroid, when transformed, is within the image. If not, ignore it!
+            perspectiveTransform(centroid_array, centroid_array_transformed, perspective_transform);
+            Point2d centroid_transformed = centroid_array_transformed[0];
+            // cout << "centroid_transformed:" << centroid_transformed << endl;
+            // Skip the point if it is outside the ROI of the board
+            if(centroid_transformed.x < 0 || centroid_transformed.x > IMAGE_WIDTH-1 || centroid_transformed.y < 0 || centroid_transformed.y > IMAGE_HEIGHT-1){
+                // cout << "point is outside ROI! Must not be stylus..." << endl;
+                continue;
+            }
+
+
+            double a = contourArea(contour);
             if(a > largest_area){
                 largest_contour_index = i;
             }
         }
 
-        vector<Point> contour = contours[largest_contour_index];
-        return contour;
+        if (largest_contour_index != -1){
+            // We found a good stylus candidate contour
+            return contours[largest_contour_index];
+        }
+        else {
+            return vector<Point>();
+        }
     }
     else {
         // No contours were found... Return empty vector
@@ -116,7 +138,7 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
     (*frame_projector).setTo(BLACK);
 
     // Find the contour with the largest area
-    vector<Point> contour = find_stylus_contour(frame_camera);
+    vector<Point> contour = find_stylus_contour(frame_camera, perspective_transform);
     if(contour.empty()){
         // Stylus wasn't found, so just paint the ink frame and return
         add(*frame_projector, frame_ink, *frame_projector);
@@ -128,9 +150,6 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
     float stylus_enclosing_radius;
     minEnclosingCircle(contour, centroid, stylus_enclosing_radius);
 
-    // // get centroid of max area contour
-    // Moments ms = moments(contour);
-    // centroid = Point2d(ms.m10 / ms.m00, ms.m01 / ms.m00);
 
     // Draw the center point of the stylus
     circle(*frame_camera, centroid, 5, BLUE, -1);
@@ -153,24 +172,37 @@ void draw(Mat *frame_camera, Mat *frame_projector, Mat perspective_transform) {
     (*frame_projector).copyTo(frame_stylus);
     // Draw the center point of the stylus
     circle(frame_stylus, centroid_transformed, 5, BLUE, -1);
-    circle(frame_stylus, centroid_transformed, stylus_enclosing_radius, Scalar(200, 200, 0), 2);
+    // Draw a circle around the stylus
+    if(PROJECTOR){
+        circle(frame_stylus, centroid_transformed, stylus_enclosing_radius*1.5 + 10, Scalar(200, 200, 0), 2);
+    }
+    else {
+        circle(frame_stylus, centroid_transformed, stylus_enclosing_radius, Scalar(200, 200, 0), 2);
+    }
 
     // draw line from prev_pt to centroid, if prev_pt exists
     if(prev_pt.x != -1){
-        // const float PT_DIST_DIFF_THRESHOLD = 100;
-        // float pt_dist_diff = sqrt(pow(prev_pt.x - centroid_transformed.x, 2) + pow(prev_pt.y - centroid_transformed.y, 2) );
-        // if(pt_dist_diff < PT_DIST_DIFF_THRESHOLD){
+        const float PT_DIST_DIFF_THRESHOLD = 100;
+        float pt_dist_diff = sqrt(pow(prev_pt.x - centroid_transformed.x, 2) + pow(prev_pt.y - centroid_transformed.y, 2) );
+        if(pt_dist_diff < PT_DIST_DIFF_THRESHOLD){
             line(frame_ink, prev_pt, centroid_transformed, stylus_color, stylus_width, 8);
-        // }
-        // else {
-            // Close up the draw
-            // line(frame_ink, prev_pt, prev_pt, stylus_color, stylus_width, 8);
-        // }
+        }
+        else {
+            // "Close up the draw" so it's not as glitchy-looking
+            line(frame_ink, prev_pt, prev_pt, stylus_color, stylus_width, 8);
+        }
     }
 
     // Combine frame_ink with the projector frame
     add(*frame_projector, frame_ink, *frame_projector);
     add(*frame_projector, frame_stylus, *frame_projector);
+
+    if(PROJECTOR){
+        // Draw black over the stylus, so that the projector light does not mess up the color detection
+        circle(*frame_projector, centroid_transformed, stylus_enclosing_radius*1.5, BLACK, -1);
+    }
+
+
 
     // Save the transformed centroid as the previous point
     prev_pt = centroid_transformed;

@@ -1,8 +1,8 @@
 #include <opencv2/opencv.hpp>
 #include <iomanip>
 
-#include "calibration.h"
 #include "globals.h"
+#include "calibration.h"
 
 using namespace std;
 using namespace cv;

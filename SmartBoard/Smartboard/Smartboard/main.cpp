@@ -4,15 +4,13 @@
 using namespace cv;
 using namespace std;
 
+#include "globals.h"
 #include "calibration.h"
 #include "drawing.h"
-#include "globals.h"
 
 //
 ////  Define constants for the main control loop
 //
-
-const bool FULLSCREEN = true;
 
 // Keyboard codes
 int const ESC_KEY = 27; // Exit program
@@ -103,9 +101,8 @@ int main(){
             case SPACE_KEY:
                 // Calculate transform mode
                 perspective_transform = calibrate_smartboard(&frame_camera, &frame_projector, true);
-                // This should only happen once, so...
-                // TODO: Immediately transfer to drawing mode? Or just reset and let the user enter drawing mode?
-                processingMode = -1;
+                // Immediately transfer to drawing mode!
+                processingMode = KEY_D;
                 break;
             //
             // Drawing mode

@@ -16,6 +16,9 @@
 extern const int IMAGE_WIDTH;
 extern const int IMAGE_HEIGHT;
 
+#define FULLSCREEN true
+#define PROJECTOR true
+
 extern const cv::Scalar RED;
 extern const cv::Scalar GREEN;
 extern const cv::Scalar ORANGE;
