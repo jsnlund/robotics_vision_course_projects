@@ -22,6 +22,10 @@ void save_stylus();
 void load_saved_stylus();
 
 
+void change_color_right();
+void change_color_left();
+
+
 // TODO: Implement other functions here
 // set_stylus_width
 // set_stylus_color

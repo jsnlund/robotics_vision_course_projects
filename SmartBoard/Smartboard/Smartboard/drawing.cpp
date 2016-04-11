@@ -39,12 +39,18 @@ const Scalar GREEN_UPPER_HSV =  Scalar(HUE_MARKER + HUE_MARKER_BUFFER, MAX_SAT, 
 
 vector<Scalar> stylus_colors = {
     RED,
-    GREEN,
+    // GREEN, // This doesn't work with our color detection...
     BLUE,
     ORANGE,
+    WHITE,
+    GRAY,
 };
+int stylus_colors_index = 0;
+Scalar stylus_color = stylus_colors[stylus_colors_index];
 
-Scalar stylus_color = RED;
+
+
+
 int stylus_width = 3;
 
 // Have a saved color, for when switching between erase and draw
@@ -247,3 +253,19 @@ void clear(Mat *frame_projector) {
     frame_ink.setTo(BLACK);
     (*frame_projector).setTo(BLACK);
 }
+
+
+void change_color_right(){
+    stylus_colors_index++;
+    if(stylus_colors_index >= stylus_colors.size()){
+        stylus_colors_index = 0;
+    }
+    set_stylus_color(stylus_colors[stylus_colors_index]);
+};
+void change_color_left(){
+    stylus_colors_index--;
+    if(stylus_colors_index < 0){
+        stylus_colors_index = stylus_colors.size()-1;
+    }
+    set_stylus_color(stylus_colors[stylus_colors_index]);
+};

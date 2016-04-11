@@ -34,6 +34,7 @@ int const KEY_6 = 54; // 6
 int const KEY_7 = 55; // 7
 int const KEY_8 = 56; // 8
 int const KEY_9 = 57; // 9
+int const KEY_0 = 48; // 0
 
 
 
@@ -129,6 +130,16 @@ int main(){
             case KEY_1:
             case KEY_W:
                 clear(&frame_projector);
+                // Automatically go to draw mode
+                processingMode = KEY_D;
+                break;
+            case KEY_0:
+                change_color_right();
+                // Automatically go to draw mode
+                processingMode = KEY_D;
+                break;
+            case KEY_9:
+                change_color_left();
                 // Automatically go to draw mode
                 processingMode = KEY_D;
                 break;
