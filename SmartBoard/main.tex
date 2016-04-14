@@ -1,0 +1,96 @@
+\documentclass[letterpaper,10pt,oneside,onecolumn, titlepage]{article}
+\usepackage[letterpaper, margin=1in]{geometry}
+%  \geometry{
+%  a4paper,
+%  total={210mm,297mm},
+%  left=20mm,
+%  right=20mm,
+%  top=20mm,
+%  bottom=20mm,
+%  }
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{titlesec}  %needs recent version of »titlesec«
+\usepackage{xcolor}
+\usepackage[pdftex]{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage[]{xfrac}
+\usepackage{color}
+\usepackage[nottoc]{tocbibind}
+\usepackage{multirow}
+\usepackage{pdfpages}
+\usepackage{amsmath}
+
+\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{5}
+
+\definecolor{pmBlue1}{rgb}{0.0156, 0.3164, 0.5625}
+\definecolor{pmBlue2}{rgb}{0.336, 0.711, 0.797}
+
+\graphicspath{{Figures/}{../Figures/}}
+
+\titleformat{\section}
+{\color{pmBlue1}\normalfont\Large\bfseries}
+{\color{pmBlue1}\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\color{pmBlue2}\normalfont\large\bfseries}
+{\color{pmBlue2}\thesubsection}{1em}{}
+
+
+\title{Vision Project: Smartboard}
+\author{\Large\textbf{Michael Hinton, Jason Lund}}
+\date{\Large{\today}}
+
+
+
+\begin{document}
+\maketitle
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+Smartboards are becoming increasingly popular in educational and business institutions.  Smartboards are digital whiteboards that enable a new way to interact with software and computers.  Most smartboards on the market are expensive and require a large piece of equipment that must be installed in one location.  Our aim with this project was to lay the foundation for a less expensive and more portable version.
+
+\section{Methods}
+We set up a webcam on a tripod to view a tv or projection screen.  We would then calibrate the system to tell the camera where in the view the screen was.  Then we could "draw" on the screen with a visual marker and the program would draw that digitally and display it on the screen.  Our program uses a straight forward outline to create a simple smartboard program.
+\begin{itemize}
+    \item Static calibration with chessboard
+    \item Sort corners: put corners in correct order for perspective transform
+    \item Get Perspective Transform
+    \item Detect marker using HSV and inRange()
+    \item Functionality: draw, erase, change color, change stylus size
+\end{itemize}
+
+\section{Challenges}
+
+We originally thought to use a large green rectangle for calibration but ran into trouble detecting the corners consistently as we switched between viewing media (tv vs projector), between projectors, and even with changing lighting conditions.  Changing to the chessboard pattern for our calibration made the system much more robust and portable to different environments.\\
+Finding the correct values for the inRange() function was rather tricky.  As a future update, we would consider adding a marker color calibration so we didn't have to manually set values to segment out.  When using a projector, it will overlay the color over the marker, which changes the marker's color and makes it undetectable.  We had to black out the colors around the marker to prevent this problem.  Switching to an infrared tag for drawing might fix this.  Also, we couldn't draw green because our marker was green.  This is also solved by an iR marker.\\
+We also detect incorrect points occasionally and haven't found a good way of filtering those out.  A good filter would help smooth the drawing to make it appear less jumpy.
+% \begin{itemize}
+%     \item Changing lighting conditions/projector colors
+%     \item Projector changing color of marker/tag
+%     \item Remove bad points
+%     \item Out of range, incorrect
+%     \item Smoothing the drawing
+%     \item Can’t draw green
+% \end{itemize}
+
+\section{Future Development}
+We are happy with how this project turned out and have some ideas on how this might be developed into a better product in the future.  Items that we have considered include the following.
+
+\begin{itemize}
+    \item Raspberry Pi or Android implementation
+    \item Less color dependent marker/tag
+    \item Camera calibration for each implementation to make it more robust
+    \item Dynamic calibration (updates every frame using AR tags in the corners of the projection frame)
+\end{itemize}
+
+
+
+\end{document}
