@@ -26,15 +26,15 @@ int const KEY_W = 119; // wipe/clear/reset the board
 
 
 int const KEY_1 = 49; // Clear the board
-int const KEY_2 = 50; // 2
+int const KEY_2 = 50; // Stop processing inputs
 int const KEY_3 = 51; // 3
 int const KEY_4 = 52; // 4
-int const KEY_5 = 53; // 5
-int const KEY_6 = 54; // 6
+int const KEY_5 = 53; // Decrease Width
+int const KEY_6 = 54; // Increase Width
 int const KEY_7 = 55; // 7
 int const KEY_8 = 56; // 8
-int const KEY_9 = 57; // 9
-int const KEY_0 = 48; // 0
+int const KEY_9 = 57; // Cycle color left
+int const KEY_0 = 48; // Cycle color right
 
 
 
@@ -154,6 +154,8 @@ int main(){
                 processingMode = previous_processing_mode;
                 break;
 
+            case KEY_Q:
+            case KEY_2:
             default:
                 // Nothing is happening - just show live feed
                 break;

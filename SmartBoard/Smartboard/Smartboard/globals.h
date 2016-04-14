@@ -18,6 +18,7 @@ extern const int IMAGE_HEIGHT;
 
 #define FULLSCREEN true
 #define PROJECTOR true
+#define BLURME false
 
 extern const cv::Scalar RED;
 extern const cv::Scalar GREEN;

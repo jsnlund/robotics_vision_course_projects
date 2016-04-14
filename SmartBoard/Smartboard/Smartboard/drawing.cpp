@@ -52,6 +52,7 @@ Scalar stylus_color = stylus_colors[stylus_colors_index];
 double blackout_multiplier = 2.0;
 
 int stylus_width = 3;
+const int STYLUS_CHANGE_WIDTH = 10;
 
 // Have a saved color, for when switching between erase and draw
 Scalar stylus_color_saved = RED;
@@ -75,6 +76,13 @@ Mat frame_ink = Mat(Size(IMAGE_WIDTH,IMAGE_HEIGHT), CV_8UC3);
 // Since this is a private function, do not expose it in the header
 vector<Point> find_stylus_contour(Mat *frame_camera, Mat perspective_transform){
     Mat frame_camera_hsv, frame_camera_hsv_binary;
+
+    if(BLURME){
+        GaussianBlur(*frame_camera, *frame_camera, Size(11,11), 0);
+        // *frame_camera = cv2.GaussianBlur(frame, (11, 11), 0)
+    }
+
+
     cvtColor(*frame_camera, frame_camera_hsv, COLOR_BGR2HSV);
 
 
@@ -271,11 +279,11 @@ void change_color_left(){
 
 void increase_stylus_width(){
     if (stylus_width < 300) {
-        stylus_width += 2;
+        stylus_width += STYLUS_CHANGE_WIDTH;
     }
 };
 void decrease_stylus_width(){
-    stylus_width -= 2;
+    stylus_width -= STYLUS_CHANGE_WIDTH;
     if (stylus_width < 1) {
         stylus_width = 1;
     }
